@@ -15,7 +15,7 @@
         aside a:hover{background:#252B38}
         h1{margin-top:0}
         .card{background:#121722;padding:16px;border-radius:10px;margin-bottom:14px;border:1px solid #252B38}
-        .row{display:flex;justify-content:space-between;align-items:center}
+        .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
         table{width:100%;border-collapse:collapse}
         td,th{padding:8px;border-bottom:1px solid #252B38;text-align:left;font-size:14px}
         label{color:#8B93A7;font-size:13px;display:block;margin-top:8px}
@@ -24,6 +24,9 @@
         .alert-success{background:#14532d;color:#dcfce7;padding:10px;border-radius:6px;margin-bottom:12px}
         .alert-error{background:#7f1d1d;color:#fee2e2;padding:10px;border-radius:6px;margin-bottom:12px}
         .muted{color:#8B93A7}
+        .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;border:1px solid #252B38}
+        .b-available{background:#14532d}.b-reserved{background:#1e3a8a}.b-borrowed{background:#78350f}
+        .b-maintenance{background:#713f12}.b-damaged{background:#7f1d1d}.b-lost{background:#450a0a}.b-retired{background:#334155}
     </style>
 </head>
 <body>
@@ -34,12 +37,26 @@
         <small>{{ auth()->user()->getRoleNames()->implode(', ') }}</small>
     </p>
     <a href="{{ route('dashboard') }}">📊 Dashboard</a>
-    @can('viewAny', App\Models\Organization::class)
-        <a href="{{ route('admin.organizations.index') }}">🏢 Organisasi</a>
+
+    @can('viewAny', App\Models\Asset::class)
+        <a href="{{ route('admin.assets.index') }}">📦 Aset</a>
+    @endcan
+    @can('category.manage')
+        <a href="{{ route('admin.categories.index') }}">🗂️ Kategori</a>
+    @endcan
+    @can('asset-type.manage')
+        <a href="{{ route('admin.asset-types.index') }}">🧩 Tipe Aset</a>
+    @endcan
+    @can('location.manage')
+        <a href="{{ route('admin.locations.index') }}">📍 Lokasi</a>
     @endcan
     @can('viewAny', App\Models\User::class)
         <a href="{{ route('admin.users.index') }}">👤 Pengguna</a>
     @endcan
+    @can('viewAny', App\Models\Organization::class)
+        <a href="{{ route('admin.organizations.index') }}">🏢 Organisasi</a>
+    @endcan
+
     <form method="POST" action="{{ route('logout') }}" style="margin-top:20px">
         @csrf
         <button type="submit">Logout</button>
