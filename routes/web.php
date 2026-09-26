@@ -18,6 +18,7 @@ use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationCo
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\ShowcaseController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -56,6 +57,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('scan/{assetCode}', [ScanController::class, 'resolve'])->name('scan.resolve');
     Route::get('qr/{assetCode}', [ScanController::class, 'png'])->name('assets.qr');
 
+    // ── Halaman Produk (tujuan scan QR — foto/video unit) ──
+    Route::get('p/{assetCode}', [ShowcaseController::class, 'show'])->name('showcase');
+
     // ── Area Admin ──
     Route::prefix('admin')->name('admin.')->group(function () {
 
@@ -69,6 +73,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::resource('assets', AssetController::class);
         Route::get('assets/{asset}/qr-label', [ScanController::class, 'label'])->name('assets.qr-label');
         Route::post('assets/{asset}/attachments', [AssetAttachmentController::class, 'store'])->name('assets.attachments.store');
+        Route::post('attachments/{attachment}/cover', [AssetAttachmentController::class, 'cover'])->name('attachments.cover');
         Route::delete('attachments/{attachment}', [AssetAttachmentController::class, 'destroy'])->name('attachments.destroy');
 
         Route::get('reservations', [AdminReservationController::class, 'index'])->name('reservations.index');

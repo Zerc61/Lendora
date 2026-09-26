@@ -43,4 +43,15 @@ class AssetAttachmentController extends Controller
 
         return back()->with('success', 'Attachment dihapus.');
     }
+
+    /** Jadikan foto/video ini cover halaman produk */
+    public function cover(AssetAttachment $attachment)
+    {
+        $this->authorize('update', $attachment->asset);
+
+        AssetAttachment::where('asset_id', $attachment->asset_id)->update(['is_cover' => false]);
+        $attachment->update(['is_cover' => true]);
+
+        return back()->with('success', "Cover halaman produk: {$attachment->title}.");
+    }
 }

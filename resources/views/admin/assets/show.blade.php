@@ -31,7 +31,10 @@
 
 {{-- Galeri Foto / Video Produk + Dokumen --}}
 <div class="card">
-    <h3 style="margin-top:0">🖼️ Galeri Produk (Foto / Video)</h3>
+    <div class="row">
+        <h3 style="margin:0">🖼️ Galeri Produk (Foto / Video)</h3>
+        <a href="{{ route('showcase', $asset->asset_code) }}">🖼️ Lihat Halaman Produk</a>
+    </div>
     @can('update', $asset)
     <form method="POST" action="{{ route('admin.assets.attachments.store', $asset) }}" enctype="multipart/form-data" class="row" style="margin-bottom:12px">
         @csrf
@@ -67,12 +70,20 @@
             </a>
             @endif
             <div class="row" style="padding:6px 8px">
-                <small class="muted">{{ Str::limit($att->title, 28) }}</small>
+                <small class="muted">{{ Str::limit($att->title, 24) }} @if($att->is_cover)<span class="badge b-available">cover</span>@endif</small>
                 @can('update', $asset)
-                <form method="POST" action="{{ route('admin.attachments.destroy', $att) }}" onsubmit="return confirm('Hapus media ini?')">
-                    @csrf @method('DELETE')
-                    <button style="background:#7f1d1d;padding:3px 8px;font-size:11px">Hapus</button>
-                </form>
+                <div>
+                    @unless($att->is_cover)
+                    <form method="POST" action="{{ route('admin.attachments.cover', $att) }}" style="display:inline">
+                        @csrf
+                        <button style="padding:3px 8px;font-size:11px">Cover</button>
+                    </form>
+                    @endunless
+                    <form method="POST" action="{{ route('admin.attachments.destroy', $att) }}" style="display:inline" onsubmit="return confirm('Hapus media ini?')">
+                        @csrf @method('DELETE')
+                        <button style="background:#7f1d1d;padding:3px 8px;font-size:11px">Hapus</button>
+                    </form>
+                </div>
                 @endcan
             </div>
         </div>

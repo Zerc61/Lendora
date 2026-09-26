@@ -36,7 +36,7 @@ class ScanController extends Controller
         $this->authorize('view', $asset);
 
         return redirect()
-            ->route('admin.assets.show', $asset)
+            ->route('showcase', ['assetCode' => $asset->asset_code])
             ->with('success', "Hasil scan: {$asset->asset_code}");
     }
 
@@ -57,7 +57,7 @@ class ScanController extends Controller
         ]);
 
         $png = (new QRCode($options))->render(
-            route('scan.resolve', ['assetCode' => $asset->asset_code]) // URL absolut
+            route('showcase', ['assetCode' => $asset->asset_code]) // URL absolut halaman produk
         );
 
         return response($png, 200, [

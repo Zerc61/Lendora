@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AssetAttachment extends Model
 {
-    protected $fillable = ['asset_id', 'uploaded_by', 'file_path', 'type', 'title', 'metadata'];
+    protected $fillable = ['asset_id', 'uploaded_by', 'file_path', 'type', 'is_cover', 'title', 'metadata'];
 
     protected function casts(): array
     {
-        return ['type' => AttachmentType::class, 'metadata' => 'array'];
+        return ['type' => AttachmentType::class, 'is_cover' => 'boolean', 'metadata' => 'array'];
     }
 
     public function asset(): BelongsTo { return $this->belongsTo(Asset::class); }
