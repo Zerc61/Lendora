@@ -8,7 +8,9 @@ use App\Http\Controllers\Admin\BorrowingController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CheckinController;
 use App\Http\Controllers\Admin\CheckoutController;
+use App\Http\Controllers\Admin\IssueController;
 use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\MaintenanceTicketController;
 use App\Http\Controllers\Admin\OrganizationController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\UserController;
@@ -16,7 +18,6 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Borrower\BorrowingController as BorrowerBorrowingController;
 use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\IssueController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ShowcaseController;
 use Illuminate\Support\Facades\Route;
@@ -52,12 +53,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('borrowings/{borrowing}', [BorrowerBorrowingController::class, 'show'])->name('borrowings.show');
     });
 
-    // ── Phase 5: QR & Scan ──
+    // ── QR & Scan (Phase 5) + Halaman Produk ──
     Route::get('scan', [ScanController::class, 'index'])->name('scan');
     Route::get('scan/{assetCode}', [ScanController::class, 'resolve'])->name('scan.resolve');
     Route::get('qr/{assetCode}', [ScanController::class, 'png'])->name('assets.qr');
-
-    // ── Halaman Produk (tujuan scan QR — foto/video unit) ──
     Route::get('p/{assetCode}', [ShowcaseController::class, 'show'])->name('showcase');
 
     // ── Area Admin ──
@@ -72,6 +71,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::resource('assets', AssetController::class);
         Route::get('assets/{asset}/qr-label', [ScanController::class, 'label'])->name('assets.qr-label');
+        Route::post('assets/{asset}/retire', [AssetController::class, 'retire'])->name('assets.retire');
         Route::post('assets/{asset}/attachments', [AssetAttachmentController::class, 'store'])->name('assets.attachments.store');
         Route::post('attachments/{attachment}/cover', [AssetAttachmentController::class, 'cover'])->name('attachments.cover');
         Route::delete('attachments/{attachment}', [AssetAttachmentController::class, 'destroy'])->name('attachments.destroy');
@@ -100,10 +100,32 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('checkin/{borrowing}', [CheckinController::class, 'store'])->name('checkin.store');
         });
 
-        // ── Phase 5: Report Issue (minimal — workflow penuh di Phase 6) ──
+        // ── Phase 6: Issues (workflow penuh — create dulu agar tidak ditelan {issue}) ──
         Route::middleware('permission:issue.create')->group(function () {
             Route::get('issues/create', [IssueController::class, 'create'])->name('issues.create');
             Route::post('issues', [IssueController::class, 'store'])->name('issues.store');
+        });
+        Route::middleware('permission:issue.view')->group(function () {
+            Route::get('issues', [IssueController::class, 'index'])->name('issues.index');
+            Route::get('issues/{issue}', [IssueController::class, 'show'])->name('issues.show');
+        });
+        Route::post('issues/{issue}/transition', [IssueController::class, 'transition'])
+            ->middleware('permission:issue.resolve')->name('issues.transition');
+
+        // ── Phase 6: Maintenance Tickets (create dulu agar tidak ditelan {ticket}) ──
+        Route::middleware('permission:maintenance.create')->group(function () {
+            Route::get('tickets/create', [MaintenanceTicketController::class, 'create'])->name('tickets.create');
+            Route::post('tickets', [MaintenanceTicketController::class, 'store'])->name('tickets.store');
+            Route::get('tickets/{ticket}/edit', [MaintenanceTicketController::class, 'edit'])->name('tickets.edit');
+            Route::put('tickets/{ticket}', [MaintenanceTicketController::class, 'update'])->name('tickets.update');
+        });
+        Route::middleware('permission:maintenance.view')->group(function () {
+            Route::get('tickets', [MaintenanceTicketController::class, 'index'])->name('tickets.index');
+            Route::get('tickets/{ticket}', [MaintenanceTicketController::class, 'show'])->name('tickets.show');
+        });
+        Route::middleware('permission:maintenance.work')->group(function () {
+            Route::post('tickets/{ticket}/transition', [MaintenanceTicketController::class, 'transition'])->name('tickets.transition');
+            Route::post('tickets/{ticket}/logs', [MaintenanceTicketController::class, 'addLog'])->name('tickets.logs.store');
         });
     });
 });

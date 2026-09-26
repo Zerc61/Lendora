@@ -29,6 +29,9 @@
         .b-borrowed,.b-pending{background:#78350f}.b-maintenance,.b-fair{background:#713f12}
         .b-damaged,.b-rejected{background:#7f1d1d}.b-lost,.b-overdue{background:#450a0a}
         .b-retired,.b-cancelled,.b-fulfilled{background:#334155}
+        .b-open{background:#1e3a8a}.b-investigating{background:#78350f}.b-resolved{background:#14532d}
+        .b-closed{background:#334155}.b-assigned{background:#1e3a8a}.b-in_progress{background:#78350f}
+        .b-waiting_parts{background:#713f12}.b-completed{background:#14532d}.b-verified{background:#14532d}
     </style>
 </head>
 <body>
@@ -64,6 +67,12 @@
     @endcan
     @can('checkin.perform')
         <a href="{{ route('admin.checkin.index') }}">📥 Check-in</a>
+    @endcan
+    @can('issue.view')
+        <a href="{{ route('admin.issues.index') }}">⚠️ Issue</a>
+    @endcan
+    @can('maintenance.view')
+        <a href="{{ route('admin.tickets.index') }}">🔧 Maintenance</a>
     @endcan
     @can('category.manage')
         <a href="{{ route('admin.categories.index') }}">🗂️ Kategori</a>

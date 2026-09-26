@@ -14,6 +14,7 @@ use App\Models\Asset;
 use App\Models\AssetType;
 use App\Models\Borrowing;
 use App\Models\Category;
+use App\Services\AssetHealthCalculator;
 use App\Models\Location;
 use App\Models\Organization;
 use App\Services\AssetCodeGenerator;
@@ -71,7 +72,10 @@ class AssetController extends Controller
 
     public function show(Asset $asset)
     {
-        $asset->load(['assetType.category', 'location', 'attachments.uploader']);
+        $asset->load([
+            'assetType.category', 'location', 'attachments.uploader',
+            'maintenanceTickets.technician', 'issues.reportedBy',
+        ]);
 
         // Availability: jadwal reservasi aktif untuk unit ini (PDF 4F)
         $schedules = $asset->reservationItems()
@@ -91,12 +95,29 @@ class AssetController extends Controller
             ->first();
 
         return view('admin.assets.show', [
-            'asset' => $asset,
-            'schedules' => $schedules,
-            'inspections' => $asset->inspections()->with('inspector')->latest('inspected_at')->take(10)->get(),
+            'asset'           => $asset,
+            'schedules'       => $schedules,
+            'inspections'     => $asset->inspections()->with('inspector')->latest('inspected_at')->take(10)->get(),
             'pendingCheckout' => $pendingCheckout,
             'activeBorrowing' => $activeBorrowing,
+            'health'          => app(AssetHealthCalculator::class)->calculate($asset), // PDF 4K
         ]);
+    }
+
+    /** Lifecycle akhir: retire (PDF 4K: active → maintenance/damaged/lost → retired) */
+    public function retire(Request $request, Asset $asset)
+    {
+        $this->authorize('update', $asset);
+
+        if (! $asset->status->canTransitionTo(AssetStatus::Retired)) {
+            return back()->withErrors("Transisi tidak valid: {$asset->status->label()} → Dipensiunkan.");
+        }
+
+        $asset->update(['status' => AssetStatus::Retired]);
+
+        return redirect()
+            ->route('admin.assets.show', $asset)
+            ->with('success', "Aset {$asset->asset_code} dipensiunkan (retired).");
     }
 
     public function edit(Asset $asset)

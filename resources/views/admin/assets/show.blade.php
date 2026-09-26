@@ -15,6 +15,17 @@
     </div>
 </div>
 
+{{-- Asset Health (PDF 4K) --}}
+<div class="card">
+    <h3 style="margin-top:0">💚 Kesehatan Aset: <strong style="color:{{ $health['color'] }}">{{ $health['score'] }}/100 — {{ $health['label'] }}</strong></h3>
+    <div style="background:#0B0E14;border:1px solid #252B38;border-radius:6px;height:10px;max-width:420px">
+        <div style="height:10px;border-radius:6px;background:{{ $health['color'] }};width:{{ $health['score'] }}%"></div>
+    </div>
+    <ul class="muted" style="font-size:13px;margin:8px 0 0;padding-left:18px">
+        @foreach($health['breakdown'] as $b)<li>{{ $b }}</li>@endforeach
+    </ul>
+</div>
+
 <div class="card">
     <table>
         <tr><th style="width:35%">Tipe</th><td>{{ $asset->assetType->name }} ({{ $asset->assetType->category->name }})</td></tr>
@@ -133,7 +144,17 @@
             @can('issue.create')
                 <a href="{{ route('admin.issues.create', ['asset' => $asset->id]) }}">⚠️ Laporkan Masalah</a><br>
             @endcan
-            <span class="muted" style="font-size:13px">🛠️ Maintenance — tersedia di Phase 6</span>
+@can('maintenance.create')
+    <a href="{{ route('admin.tickets.create', ['asset' => $asset->id]) }}">🛠️ Buat Tiket Maintenance</a><br>
+@endcan
+@can('update', $asset)
+@if(!in_array($asset->status->value, ['retired', 'borrowed', 'reserved']))
+<form method="POST" action="{{ route('admin.assets.retire', $asset) }}" onsubmit="return confirm('Pensiunkan aset ini? Status retired bersifat permanen.')" style="margin-top:6px">
+    @csrf
+    <button style="background:#334155;padding:5px 10px;font-size:12px">🗑️ Retire Aset</button>
+</form>
+@endif
+@endcan
         </div>
         <div>
             <a href="{{ route('admin.assets.qr-label', $asset) }}">🖨️ Cetak Label QR</a>
@@ -167,6 +188,35 @@
     </div>
     @empty
     <p class="muted">Belum ada riwayat inspeksi.</p>
+    @endforelse
+</div>
+
+{{-- Riwayat Maintenance (PDF 4J) --}}
+<div class="card">
+    <h3 style="margin-top:0">🔧 Riwayat Maintenance</h3>
+    @forelse($asset->maintenanceTickets as $t)
+    <div style="border-bottom:1px solid #252B38;padding:6px 0">
+        <a href="{{ route('admin.tickets.show', $t) }}"><strong>{{ $t->code }}</strong></a>
+        — {{ $t->type->value }} | <span class="badge b-{{ $t->status->value }}">{{ $t->status->label() }}</span>
+        <span class="muted">| teknisi: {{ $t->technician?->name ?? '—' }} | selesai: {{ $t->completed_at?->format('d M Y') ?? '—' }}</span>
+    </div>
+    @empty
+    <p class="muted">Belum ada riwayat maintenance.</p>
+    @endforelse
+</div>
+
+{{-- Riwayat Issue --}}
+<div class="card">
+    <h3 style="margin-top:0">⚠️ Riwayat Issue</h3>
+    @forelse($asset->issues as $i)
+    <div style="border-bottom:1px solid #252B38;padding:6px 0">
+        <a href="{{ route('admin.issues.show', $i) }}"><strong>{{ $i->code }}</strong></a>
+        — {{ $i->type->value }} ({{ $i->severity->value }}) |
+        <span class="badge b-{{ $i->status->value }}">{{ $i->status->label() }}</span>
+        <div class="muted">{{ Str::limit($i->description, 80) }}</div>
+    </div>
+    @empty
+    <p class="muted">Belum ada riwayat issue.</p>
     @endforelse
 </div>
 @endsection
