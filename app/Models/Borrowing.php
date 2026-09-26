@@ -32,6 +32,8 @@ class Borrowing extends Model
     public function checkedOutBy(): BelongsTo { return $this->belongsTo(User::class, 'checked_out_by'); }
     public function checkedInBy(): BelongsTo { return $this->belongsTo(User::class, 'checked_in_by'); }
     public function items(): HasMany { return $this->hasMany(BorrowingItem::class); }
+    public function inspections(): HasMany { return $this->hasMany(AssetInspection::class); }
+    public function issues(): HasMany { return $this->hasMany(Issue::class); }
 
     public function isOverdue(): bool
     {

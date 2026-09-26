@@ -65,9 +65,24 @@
     @endforelse
 </div>
 
+{{-- Jadwal reservasi unit (availability) --}}
+<div class="card">
+    <h3 style="margin-top:0">📅 Jadwal Reservasi Mendatang</h3>
+    @forelse($schedules as $item)
+    <div style="border-bottom:1px solid #252B38;padding:6px 0">
+        <strong>{{ $item->reservation->code }}</strong>
+        <span class="badge b-{{ $item->reservation->status->value }}">{{ $item->reservation->status->value }}</span><br>
+        <span class="muted">{{ $item->reservation->start_at->format('d M Y H:i') }} → {{ $item->reservation->end_at->format('d M Y H:i') }}
+        oleh {{ $item->reservation->user->name }}</span>
+    </div>
+    @empty
+    <p class="muted">Tidak ada reservasi mendatang untuk unit ini.</p>
+    @endforelse
+</div>
+
 {{-- Riwayat inspeksi --}}
 <div class="card">
-    <h3 style="margin-top:0">Riwayat Inspeksi <span class="muted">(akan terisi sejak Phase 4 — checkout/check-in)</span></h3>
+    <h3 style="margin-top:0">Riwayat Inspeksi</h3>
     @forelse($inspections as $ins)
     <div style="border-bottom:1px solid #252B38;padding:6px 0">
         <strong>{{ $ins->stage->value }}</strong> — kondisi: {{ $ins->condition->value }}

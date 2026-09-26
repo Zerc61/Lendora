@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
+use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
@@ -70,8 +71,17 @@ class AssetController extends Controller
     {
         $asset->load(['assetType.category', 'location', 'attachments.uploader']);
 
+        // Availability: jadwal reservasi aktif untuk unit ini (PDF 4F)
+        $schedules = $asset->reservationItems()
+            ->whereHas('reservation', fn ($q) => $q
+                ->whereIn('status', [ReservationStatus::Pending->value, ReservationStatus::Approved->value])
+                ->where('end_at', '>=', now()))
+            ->with('reservation.user')
+            ->get();
+
         return view('admin.assets.show', [
             'asset' => $asset,
+            'schedules' => $schedules,
             'inspections' => $asset->inspections()->with('inspector')->latest('inspected_at')->take(10)->get(),
         ]);
     }

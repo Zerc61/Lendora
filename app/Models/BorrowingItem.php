@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AssetCondition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BorrowingItem extends Model
 {
@@ -20,4 +21,11 @@ class BorrowingItem extends Model
 
     public function borrowing(): BelongsTo { return $this->belongsTo(Borrowing::class); }
     public function asset(): BelongsTo { return $this->belongsTo(Asset::class); }
+
+    public function inspectionCheckout(): HasOne
+    {
+        return $this->hasOne(AssetInspection::class, 'borrowing_id', 'borrowing_id')
+            ->where('asset_id', $this->asset_id)
+            ->where('stage', 'checkout');
+    }
 }

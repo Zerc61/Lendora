@@ -25,8 +25,10 @@
         .alert-error{background:#7f1d1d;color:#fee2e2;padding:10px;border-radius:6px;margin-bottom:12px}
         .muted{color:#8B93A7}
         .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;border:1px solid #252B38}
-        .b-available{background:#14532d}.b-reserved{background:#1e3a8a}.b-borrowed{background:#78350f}
-        .b-maintenance{background:#713f12}.b-damaged{background:#7f1d1d}.b-lost{background:#450a0a}.b-retired{background:#334155}
+        .b-available,.b-approved{background:#14532d}.b-reserved,.b-returned{background:#1e3a8a}
+        .b-borrowed,.b-pending{background:#78350f}.b-maintenance,.b-fair{background:#713f12}
+        .b-damaged,.b-rejected{background:#7f1d1d}.b-lost,.b-overdue{background:#450a0a}
+        .b-retired,.b-cancelled,.b-fulfilled{background:#334155}
     </style>
 </head>
 <body>
@@ -38,8 +40,26 @@
     </p>
     <a href="{{ route('dashboard') }}">📊 Dashboard</a>
 
+    @can('reservation.create')
+        <a href="{{ route('my.reservations.create') }}">➕ Ajukan Reservasi</a>
+        <a href="{{ route('my.reservations.index') }}">📅 Reservasi Saya</a>
+        <a href="{{ route('my.borrowings.index') }}">📚 Peminjaman Saya</a>
+    @endcan
+
     @can('viewAny', App\Models\Asset::class)
         <a href="{{ route('admin.assets.index') }}">📦 Aset</a>
+    @endcan
+    @can('reservation.approve')
+        <a href="{{ route('admin.reservations.index') }}">🗓️ Reservasi</a>
+    @endcan
+    @can('borrowing.view')
+        <a href="{{ route('admin.borrowings.index') }}">🤝 Peminjaman</a>
+    @endcan
+    @can('checkout.perform')
+        <a href="{{ route('admin.checkout.index') }}">📤 Check-out</a>
+    @endcan
+    @can('checkin.perform')
+        <a href="{{ route('admin.checkin.index') }}">📥 Check-in</a>
     @endcan
     @can('category.manage')
         <a href="{{ route('admin.categories.index') }}">🗂️ Kategori</a>
