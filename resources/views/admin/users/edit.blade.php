@@ -30,6 +30,11 @@
             <option value="active" {{ old('status', $user->status->value) === 'active' ? 'selected' : '' }}>Active</option>
             <option value="inactive" {{ old('status', $user->status->value) === 'inactive' ? 'selected' : '' }}>Inactive</option>
         </select>
+        <label style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" name="email_notifications" value="1" style="width:auto"
+                {{ old('email_notifications', $user->wantsMail()) ? 'checked' : '' }}>
+            Kirim notifikasi via email (opsional)
+        </label>
         <button type="submit">Update</button>
         <a href="{{ route('admin.users.index') }}" style="margin-left:8px">Batal</a>
     </form>

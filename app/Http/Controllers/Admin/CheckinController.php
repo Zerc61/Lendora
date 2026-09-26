@@ -13,8 +13,8 @@ class CheckinController extends Controller
 {
     public function index()
     {
-        // Antrean: transaksi aktif yang menunggu pengembalian
-        $borrowings = Borrowing::where('status', BorrowingStatus::Borrowed)
+        // Termasuk overdue — agar tetap bisa diproses (PDF: overdue sebagai kondisi sesuai aturan)
+        $borrowings = Borrowing::whereIn('status', [BorrowingStatus::Borrowed, BorrowingStatus::Overdue])
             ->with(['borrower', 'items.asset.assetType'])
             ->orderBy('due_at')
             ->paginate(10);
@@ -24,7 +24,11 @@ class CheckinController extends Controller
 
     public function show(Borrowing $borrowing)
     {
-        abort_unless($borrowing->status === BorrowingStatus::Borrowed, 404, 'Transaksi ini tidak sedang berjalan.');
+        abort_unless(
+            in_array($borrowing->status, [BorrowingStatus::Borrowed, BorrowingStatus::Overdue], true),
+            404,
+            'Transaksi ini tidak sedang berjalan.'
+        );
 
         $borrowing->load(['borrower', 'items.asset.assetType', 'items.inspectionCheckout']);
 

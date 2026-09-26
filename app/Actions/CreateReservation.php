@@ -7,10 +7,12 @@ use App\Enums\AssetStatus;
 use App\Models\Asset;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\NewReservationNotification;
 use App\Services\RecordCodeGenerator;
 use App\Services\ReservationConflictChecker;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class CreateReservation
@@ -62,6 +64,12 @@ class CreateReservation
             foreach ($assets as $asset) {
                 $reservation->items()->create(['asset_id' => $asset->id, 'quantity' => 1]);
             }
+
+            // PDF 4N: notifikasi ke approver (admin) saat ada pengajuan baru
+            Notification::send(
+                User::role(['admin', 'super-admin'])->get(),
+                new NewReservationNotification($reservation),
+            );
 
             return $reservation;
         });

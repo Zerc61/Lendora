@@ -1,5 +1,5 @@
 <?php
-// app/Models/User.php  (GANTI total file default)
+
 namespace App\Models;
 
 use App\Enums\UserStatus;
@@ -14,15 +14,19 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
-    protected $fillable = ['organization_id', 'name', 'email', 'password', 'status'];
+    protected $fillable = [
+        'organization_id', 'name', 'email', 'password', 'status', 'notification_preferences',
+    ];
+
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',   // PDF bag. 12: jangan simpan plaintext
+            'password' => 'hashed',
             'status' => UserStatus::class,
+            'notification_preferences' => 'array',
         ];
     }
 
@@ -34,5 +38,11 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === UserStatus::Active;
+    }
+
+    /** PDF 4N: preference per user — default email aktif */
+    public function wantsMail(): bool
+    {
+        return ($this->notification_preferences['email_enabled'] ?? true) === true;
     }
 }

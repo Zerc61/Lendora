@@ -6,6 +6,7 @@ namespace App\Actions;
 use App\Enums\AssetStatus;
 use App\Enums\BorrowingStatus;
 use App\Enums\InspectionStage;
+use App\Enums\ReservationStatus;
 use App\Models\Asset;
 use App\Models\AssetInspection;
 use App\Models\Borrowing;
@@ -59,6 +60,11 @@ class CheckoutBorrowing
                 'checked_out_at' => now(),
                 'checked_out_by' => $operator->id,
             ]);
+
+            // Reservasi sumber → fulfilled (state machine bag. 9)
+            if ($borrowing->reservation && $borrowing->reservation->status === ReservationStatus::Approved) {
+                $borrowing->reservation->update(['status' => ReservationStatus::Fulfilled]);
+            }
 
             return $borrowing;
         });

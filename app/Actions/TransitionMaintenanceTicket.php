@@ -9,6 +9,7 @@ use App\Enums\MaintenanceStatus;
 use App\Models\Asset;
 use App\Models\MaintenanceTicket;
 use App\Models\User;
+use App\Notifications\MaintenanceTicketAssignedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -57,6 +58,8 @@ class TransitionMaintenanceTicket
                 }
 
                 $updates['technician_id'] = $tech->id;
+
+                $tech->notify(new MaintenanceTicketAssignedNotification($ticket->fresh()));
             }
 
             if ($action === 'complete') {

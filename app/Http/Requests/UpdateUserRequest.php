@@ -22,6 +22,7 @@ class UpdateUserRequest extends FormRequest
             'organization_id' => ['nullable', 'exists:organizations,id'],
             'status' => ['required', 'in:active,inactive'],
             'role' => ['required', Rule::exists('roles', 'name')],
+            'email_notifications' => ['nullable', 'boolean'], // preference (bukan kolom DB)
         ];
     }
 }

@@ -43,6 +43,9 @@
     </p>
     <a href="{{ route('dashboard') }}">📊 Dashboard</a>
 
+    @php($unreadNotifications = auth()->user()->unreadNotifications()->count())
+    <a href="{{ route('notifications.index') }}">🔔 Notifikasi @if($unreadNotifications)<strong style="color:#22D3EE">({{ $unreadNotifications }})</strong>@endif</a>
+
     @can('viewAny', App\Models\Asset::class)
         <a href="{{ route('scan') }}">📷 Scan QR</a>
     @endcan
@@ -73,6 +76,9 @@
     @endcan
     @can('maintenance.view')
         <a href="{{ route('admin.tickets.index') }}">🔧 Maintenance</a>
+    @endcan
+    @can('audit.view')
+        <a href="{{ route('admin.audit-logs.index') }}">📜 Audit Log</a>
     @endcan
     @can('category.manage')
         <a href="{{ route('admin.categories.index') }}">🗂️ Kategori</a>

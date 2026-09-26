@@ -10,6 +10,7 @@ use App\Models\Asset;
 use App\Models\Borrowing;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\ReservationStatusNotification;
 use App\Services\RecordCodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -57,6 +58,9 @@ class ApproveReservation
                     'quantity' => $item->quantity,
                 ]);
             }
+
+            // PDF 4G: notifikasi status pengajuan ke peminjam
+            $reservation->user->notify(new ReservationStatusNotification($reservation, 'approved'));
 
             return $borrowing;
         });

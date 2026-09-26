@@ -49,11 +49,18 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
-        $data = collect($request->validated())->except('role')->all();
+        $data = collect($request->validated())
+            ->except(['role', 'email_notifications'])
+            ->all();
 
         if (empty($data['password'])) {
             unset($data['password']);
         }
+
+        // PDF 4N: notification preference per user
+        $preferences = $user->notification_preferences ?? [];
+        $preferences['email_enabled'] = $request->boolean('email_notifications');
+        $data['notification_preferences'] = $preferences;
 
         $user->update($data);
         $user->syncRoles($request->validated('role'));

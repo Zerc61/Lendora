@@ -28,7 +28,8 @@ class CheckinBorrowing
     public function execute(Borrowing $borrowing, User $operator, array $itemsInput, ?string $generalNotes = null): Borrowing
     {
         return DB::transaction(function () use ($borrowing, $operator, $itemsInput, $generalNotes) {
-            if ($borrowing->status !== BorrowingStatus::Borrowed) {
+            // Borrowed ATAU Overdue (hasil scheduler) tetap bisa di-check-in
+            if (! in_array($borrowing->status, [BorrowingStatus::Borrowed, BorrowingStatus::Overdue], true)) {
                 throw ValidationException::withMessages(['status' => 'Peminjaman ini tidak sedang berjalan.']);
             }
 

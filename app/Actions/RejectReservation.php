@@ -6,6 +6,7 @@ namespace App\Actions;
 use App\Enums\ReservationStatus;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\ReservationStatusNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +25,10 @@ class RejectReservation
                 'approved_at' => now(),
                 'rejection_reason' => $reason,
             ]);
+
+            $reservation->user->notify(
+                new ReservationStatusNotification($reservation, 'rejected', $reason),
+            );
         });
     }
 }

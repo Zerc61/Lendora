@@ -4,6 +4,7 @@
 use App\Http\Controllers\Admin\AssetAttachmentController;
 use App\Http\Controllers\Admin\AssetController;
 use App\Http\Controllers\Admin\AssetTypeController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BorrowingController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CheckinController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Borrower\BorrowingController as BorrowerBorrowingController;
 use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ShowcaseController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +40,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // ── Notifikasi in-app (PDF 4N) ──
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 
     // ── Area Borrower ──
     Route::prefix('my')->name('my.')->group(function () {
@@ -127,5 +134,9 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('tickets/{ticket}/transition', [MaintenanceTicketController::class, 'transition'])->name('tickets.transition');
             Route::post('tickets/{ticket}/logs', [MaintenanceTicketController::class, 'addLog'])->name('tickets.logs.store');
         });
+
+        // ── Phase 7: Audit Trail (read-only, PDF 4L) ──
+        Route::get('audit-logs', [AuditLogController::class, 'index'])
+            ->middleware('permission:audit.view')->name('audit-logs.index');
     });
 });
