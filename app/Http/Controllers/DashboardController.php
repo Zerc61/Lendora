@@ -13,10 +13,11 @@ use App\Models\Borrowing;
 use App\Models\Issue;
 use App\Models\MaintenanceTicket;
 use App\Models\Reservation;
+use App\Services\ReportService;
 
 class DashboardController extends Controller
 {
-    public function __invoke()
+    public function __invoke(ReportService $reports)
     {
         $stats = [
             'Total Aset'          => Asset::count(),
@@ -32,9 +33,22 @@ class DashboardController extends Controller
             'Tiket Maintenance'   => MaintenanceTicket::whereIn('status', [MaintenanceStatus::Open->value, MaintenanceStatus::InProgress->value])->count(),
         ];
 
+        // ── Analytics (PDF 4M: dashboard kondisi operasional utama) ──
+        $statusDistribution = collect(AssetStatus::cases())
+            ->map(fn ($s) => [
+                'status' => $s,
+                'count'  => Asset::where('status', $s->value)->count(),
+            ]);
+
         return view('admin.dashboard', [
-            'user' => auth()->user(),
-            'stats' => $stats,
+            'user'               => auth()->user(),
+            'stats'              => $stats,
+            'statusDistribution' => $statusDistribution,
+            'trend'              => $reports->borrowingTrend(),
+            'topAssets'          => Asset::withCount('borrowingItems')
+                                    ->orderByDesc('borrowing_items_count')
+                                    ->limit(5)
+                                    ->get(),
         ]);
     }
 }

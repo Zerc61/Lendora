@@ -80,6 +80,9 @@
     @can('audit.view')
         <a href="{{ route('admin.audit-logs.index') }}">📜 Audit Log</a>
     @endcan
+    @can('report.view')
+        <a href="{{ route('admin.reports.index') }}">📈 Laporan</a>
+    @endcan
     @can('category.manage')
         <a href="{{ route('admin.categories.index') }}">🗂️ Kategori</a>
     @endcan
@@ -95,6 +98,8 @@
     @can('viewAny', App\Models\Organization::class)
         <a href="{{ route('admin.organizations.index') }}">🏢 Organisasi</a>
     @endcan
+
+    <a href="{{ route('profile.index') }}">⚙️ Profil</a>
 
     <form method="POST" action="{{ route('logout') }}" style="margin-top:20px">
         @csrf

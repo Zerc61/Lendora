@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\IssueController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\MaintenanceTicketController;
 use App\Http\Controllers\Admin\OrganizationController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Borrower\BorrowingController as BorrowerBorrowingContro
 use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ShowcaseController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +47,11 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+    // ── Profil (bag. 8: Profile) ──
+    Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::put('profile/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.preferences');
 
     // ── Area Borrower ──
     Route::prefix('my')->name('my.')->group(function () {
@@ -138,5 +145,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         // ── Phase 7: Audit Trail (read-only, PDF 4L) ──
         Route::get('audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit.view')->name('audit-logs.index');
+
+        // ── Phase 8: Laporan & Export (PDF 4M) ──
+        Route::middleware('permission:report.view')->group(function () {
+            Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
+        });
     });
 });
