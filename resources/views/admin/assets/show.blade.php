@@ -65,6 +65,37 @@
     @endforelse
 </div>
 
+{{-- Quick Actions (PDF 4E) + QR unit --}}
+<div class="card">
+    <h3 style="margin-top:0">⚡ Quick Actions</h3>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+        <img src="{{ route('assets.qr', $asset->asset_code) }}" width="110" height="110"
+             alt="QR {{ $asset->asset_code }}" style="border:4px solid #fff;border-radius:6px">
+        <div>
+            @can('reservation.create')
+                <a href="{{ route('my.reservations.create', ['asset' => $asset->id]) }}">📅 Reserve unit ini</a><br>
+            @endcan
+            @can('checkout.perform')
+                @if($pendingCheckout)
+                    <a href="{{ route('admin.checkout.show', $pendingCheckout) }}">📤 Check-out ({{ $pendingCheckout->code }})</a><br>
+                @endif
+            @endcan
+            @can('checkin.perform')
+                @if($activeBorrowing)
+                    <a href="{{ route('admin.checkin.show', $activeBorrowing) }}">📥 Check-in ({{ $activeBorrowing->code }})</a><br>
+                @endif
+            @endcan
+            @can('issue.create')
+                <a href="{{ route('admin.issues.create', ['asset' => $asset->id]) }}">⚠️ Laporkan Masalah</a><br>
+            @endcan
+            <span class="muted" style="font-size:13px">🛠️ Maintenance — tersedia di Phase 6</span>
+        </div>
+        <div>
+            <a href="{{ route('admin.assets.qr-label', $asset) }}">🖨️ Cetak Label QR</a>
+        </div>
+    </div>
+</div>
+
 {{-- Jadwal reservasi unit (availability) --}}
 <div class="card">
     <h3 style="margin-top:0">📅 Jadwal Reservasi Mendatang</h3>

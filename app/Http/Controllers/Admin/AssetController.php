@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
+use App\Enums\BorrowingStatus;
 use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
 use App\Models\AssetType;
+use App\Models\Borrowing;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Organization;
@@ -79,10 +81,21 @@ class AssetController extends Controller
             ->with('reservation.user')
             ->get();
 
+        // Transaksi terkait unit ini — untuk quick actions (PDF 4E)
+        $pendingCheckout = Borrowing::where('status', BorrowingStatus::Pending)
+            ->whereHas('items', fn ($q) => $q->where('asset_id', $asset->id))
+            ->first();
+
+        $activeBorrowing = Borrowing::where('status', BorrowingStatus::Borrowed)
+            ->whereHas('items', fn ($q) => $q->where('asset_id', $asset->id))
+            ->first();
+
         return view('admin.assets.show', [
             'asset' => $asset,
             'schedules' => $schedules,
             'inspections' => $asset->inspections()->with('inspector')->latest('inspected_at')->take(10)->get(),
+            'pendingCheckout' => $pendingCheckout,
+            'activeBorrowing' => $activeBorrowing,
         ]);
     }
 

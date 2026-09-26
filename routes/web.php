@@ -16,6 +16,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Borrower\BorrowingController as BorrowerBorrowingController;
 use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\IssueController;
+use App\Http\Controllers\ScanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,7 +37,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    // ── Area Borrower: reservasi & peminjaman milik sendiri ──
+    // ── Area Borrower ──
     Route::prefix('my')->name('my.')->group(function () {
         Route::middleware('permission:reservation.create')->group(function () {
             Route::get('reservations', [BorrowerReservationController::class, 'index'])->name('reservations.index');
@@ -49,6 +51,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('borrowings/{borrowing}', [BorrowerBorrowingController::class, 'show'])->name('borrowings.show');
     });
 
+    // ── Phase 5: QR & Scan ──
+    Route::get('scan', [ScanController::class, 'index'])->name('scan');
+    Route::get('scan/{assetCode}', [ScanController::class, 'resolve'])->name('scan.resolve');
+    Route::get('qr/{assetCode}', [ScanController::class, 'png'])->name('assets.qr');
+
     // ── Area Admin ──
     Route::prefix('admin')->name('admin.')->group(function () {
 
@@ -60,10 +67,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::middleware('permission:asset-type.manage')->resource('asset-types', AssetTypeController::class);
 
         Route::resource('assets', AssetController::class);
+        Route::get('assets/{asset}/qr-label', [ScanController::class, 'label'])->name('assets.qr-label');
         Route::post('assets/{asset}/attachments', [AssetAttachmentController::class, 'store'])->name('assets.attachments.store');
         Route::delete('attachments/{attachment}', [AssetAttachmentController::class, 'destroy'])->name('attachments.destroy');
 
-        // ── Phase 4: Reservasi, Peminjaman, Checkout, Check-in ──
         Route::get('reservations', [AdminReservationController::class, 'index'])->name('reservations.index');
         Route::get('reservations/{reservation}', [AdminReservationController::class, 'show'])->name('reservations.show');
         Route::post('reservations/{reservation}/approve', [AdminReservationController::class, 'approve'])
@@ -88,6 +95,10 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('checkin/{borrowing}', [CheckinController::class, 'store'])->name('checkin.store');
         });
 
-        // Phase 5: QR & Handover
+        // ── Phase 5: Report Issue (minimal — workflow penuh di Phase 6) ──
+        Route::middleware('permission:issue.create')->group(function () {
+            Route::get('issues/create', [IssueController::class, 'create'])->name('issues.create');
+            Route::post('issues', [IssueController::class, 'store'])->name('issues.store');
+        });
     });
 });

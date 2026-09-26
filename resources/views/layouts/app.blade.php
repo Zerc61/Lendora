@@ -40,6 +40,10 @@
     </p>
     <a href="{{ route('dashboard') }}">📊 Dashboard</a>
 
+    @can('viewAny', App\Models\Asset::class)
+        <a href="{{ route('scan') }}">📷 Scan QR</a>
+    @endcan
+
     @can('reservation.create')
         <a href="{{ route('my.reservations.create') }}">➕ Ajukan Reservasi</a>
         <a href="{{ route('my.reservations.index') }}">📅 Reservasi Saya</a>

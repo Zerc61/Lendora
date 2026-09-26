@@ -24,7 +24,7 @@
             @forelse($assets as $a)
             <tr>
                 <td><input type="checkbox" name="asset_ids[]" value="{{ $a->id }}" style="width:auto"
-                    {{ in_array($a->id, old('asset_ids', [])) ? 'checked' : '' }}></td>
+                    {{ in_array($a->id, old('asset_ids', request('asset') ? [(int) request('asset')] : [])) ? 'checked' : '' }}></td>
                 <td><strong>{{ $a->asset_code }}</strong></td>
                 <td>{{ $a->assetType->name }}</td>
                 <td>{{ $a->condition->value }}</td>
