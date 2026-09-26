@@ -21,19 +21,26 @@ class MasterDataSeeder extends Seeder
         $categories = collect([
             'Laptop', 'IoT Device', 'Headphone', 'Mouse', 'Kamera', 'Proyektor', 'Peralatan Laboratorium',
         ])->mapWithKeys(function (string $name) use ($org) {
-            $category = Category::create([
-                'organization_id' => $org->id,
-                'name' => $name,
-                'description' => "Kategori {$name}",
-            ]);
+            $category = Category::firstOrCreate(
+                ['organization_id' => $org->id, 'name' => $name],
+                ['description' => "Kategori {$name}"],
+            );
             return [$name => $category];
         });
 
         // ===== Lokasi (dengan hierarki parent) =====
-        $gudang = Location::create(['organization_id' => $org->id, 'name' => 'Gudang Utama']);
-        $labKomputer = Location::create(['organization_id' => $org->id, 'name' => 'Lab Komputer 1', 'parent_id' => $gudang->id]);
-        $labIot = Location::create(['organization_id' => $org->id, 'name' => 'Lab IoT', 'parent_id' => $gudang->id]);
-        $ruangGuru = Location::create(['organization_id' => $org->id, 'name' => 'Ruang Guru']);
+        $gudang = Location::firstOrCreate(
+            ['organization_id' => $org->id, 'name' => 'Gudang Utama', 'parent_id' => null],
+        );
+        $labKomputer = Location::firstOrCreate(
+            ['organization_id' => $org->id, 'name' => 'Lab Komputer 1', 'parent_id' => $gudang->id],
+        );
+        $labIot = Location::firstOrCreate(
+            ['organization_id' => $org->id, 'name' => 'Lab IoT', 'parent_id' => $gudang->id],
+        );
+        $ruangGuru = Location::firstOrCreate(
+            ['organization_id' => $org->id, 'name' => 'Ruang Guru', 'parent_id' => null],
+        );
 
         // ===== Tipe Aset =====
         $types = collect([
@@ -46,13 +53,14 @@ class MasterDataSeeder extends Seeder
             ['category' => 'Proyektor', 'name' => 'Epson EB-X51', 'brand' => 'Epson', 'model' => 'EB-X51'],
             ['category' => 'Peralatan Laboratorium', 'name' => 'Oskiloskop Rigol DS1054Z', 'brand' => 'Rigol', 'model' => 'DS1054Z'],
         ])->mapWithKeys(function (array $t) use ($org, $categories) {
-            $type = AssetType::create([
-                'organization_id' => $org->id,
-                'category_id' => $categories[$t['category']]->id,
-                'name' => $t['name'],
-                'brand' => $t['brand'],
-                'model' => $t['model'],
-            ]);
+            $type = AssetType::firstOrCreate(
+                [
+                    'organization_id' => $org->id,
+                    'category_id' => $categories[$t['category']]->id,
+                    'name' => $t['name'],
+                ],
+                ['brand' => $t['brand'], 'model' => $t['model']],
+            );
             return [$t['name'] => $type];
         });
 
@@ -72,18 +80,20 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($units as $u) {
-            Asset::create([
-                'organization_id' => $org->id,
-                'asset_type_id' => $types[$u['type']]->id,
-                'location_id' => $u['location']->id,
-                'asset_code' => $u['code'],
-                'serial_number' => $u['serial'],
-                'status' => $u['status'],
-                'condition' => $u['condition'],
-                'purchase_date' => '2024-01-10',
-                'purchase_price' => $u['price'],
-                'warranty_until' => $u['warranty'],
-            ]);
+            Asset::firstOrCreate(
+                ['asset_code' => $u['code']],
+                [
+                    'organization_id' => $org->id,
+                    'asset_type_id' => $types[$u['type']]->id,
+                    'location_id' => $u['location']->id,
+                    'serial_number' => $u['serial'],
+                    'status' => $u['status'],
+                    'condition' => $u['condition'],
+                    'purchase_date' => '2024-01-10',
+                    'purchase_price' => $u['price'],
+                    'warranty_until' => $u['warranty'],
+                ],
+            );
         }
     }
 }

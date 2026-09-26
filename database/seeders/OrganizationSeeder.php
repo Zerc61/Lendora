@@ -9,11 +9,13 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
-        Organization::create([
-            'name' => 'SMK Nusantara',
-            'code' => 'SMK-NUS',
-            'status' => 'active',
-            'description' => 'Organisasi demo Lendora — sekolah/laboratorium',
-        ]);
+        Organization::firstOrCreate(
+            ['code' => 'SMK-NUS'],
+            [
+                'name' => 'SMK Nusantara',
+                'status' => 'active',
+                'description' => 'Organisasi demo Lendora — sekolah/laboratorium',
+            ]
+        );
     }
 }

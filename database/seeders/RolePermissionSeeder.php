@@ -61,6 +61,9 @@ class RolePermissionSeeder extends Seeder
             $role = Role::findOrCreate($roleName, 'web');
             $role->syncPermissions($rolePermissions);
         }
-        // super-admin: tidak butuh permission — dilewati via Gate::before
+
+        // super-admin: role harus ada agar hasRole('super-admin') true,
+        // permission tidak butuh — dilewati via Gate::before
+        Role::findOrCreate('super-admin', 'web');
     }
 }
