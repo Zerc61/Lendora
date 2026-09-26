@@ -15,9 +15,9 @@ class StoreAssetAttachmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Batasan tipe & ukuran (PDF bag. 12): maks 5MB, tipe terkontrol
-            'file' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp,pdf'],
-            'type' => ['required', 'in:photo,manual,document'],
+            // Foto/dokumen maks 5MB; video maks 50MB (PDF bag. 12: tipe & ukuran dikontrol)
+            'file' => ['required', 'file', 'max:51200', 'mimes:jpg,jpeg,png,webp,mp4,webm,mov,pdf'],
+            'type' => ['required', 'in:photo,video,manual,document'],
             'title' => ['nullable', 'string', 'max:255'],
         ];
     }
