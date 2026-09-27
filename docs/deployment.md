@@ -177,7 +177,10 @@ per-request.
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:<dari "php artisan key:generate --show">
-APP_URL=https://lendora.vercel.app
+
+# WAJIB, dan TIDAK BOLEH http://. Lihat §10.6 — tanpa ini seluruh URL yang
+# di-generate (CSS/JS dan <form action>) jadi http:// dan halamannya rusak.
+APP_URL=https://lendora-two.vercel.app
 
 DB_CONNECTION=mysql
 DB_HOST=<host Aiven>
@@ -186,7 +189,7 @@ DB_DATABASE=defaultdb
 DB_USERNAME=avnadmin
 DB_PASSWORD=<password>
 
-# Behind proxy — WAJIB, tanpa ini $request->secure() selalu false
+# Behind proxy — agar $request->secure() true (cookie sesi & middleware is_secure)
 TRUSTED_PROXIES=*
 SESSION_SECURE_COOKIE=true
 SESSION_HTTP_ONLY=true
@@ -194,6 +197,10 @@ SESSION_SAME_SITE=lax
 
 LOG_LEVEL=warning
 ```
+
+> **`APP_URL` dan `TRUSTED_PROXIES` itu dua hal berbeda.** `APP_URL` menentukan
+> skema pada URL yang di-generate; `TRUSTED_PROXIES` membuat `$request->secure()`
+> benar. Keduanya perlu, tapi gejalanya berbeda — jangan saling menggantikan.
 
 Set untuk ketiga environment (Production / Preview / Development), atau minimal
 untuk Production.
@@ -290,3 +297,43 @@ pada aplikasi akan tampak berfungsi di satu deploy lalu lenyap di deploy berikut
   dan pengingat akan mati diam-diam.
 - **Preview deployment.** Setiap push branch dapat URL sendiri dengan database
   Aiven yang sama. Jangan pakai data produksi untuk pengujian fitur.
+
+### 10.6 Troubleshooting: halaman tanpa gaya + "Formulir tidak aman"
+
+**Gejala:** di Vercel halaman tampil seperti HTML polos — font serif, tanpa
+warna, layout bertumpuk. CSS sama sekali tidak termuat. Saat login muncul
+warning Chrome "Formulir yang akan Anda kirimkan tidak aman".
+
+**Penyebab:** Vercel menghentikan TLS di edge lalu meneruskan request ke
+container lewat HTTP. Laravel tidak tahu REQUEST aslinya `https`, sehingga
+semua URL yang di-generate jatuh ke `http://`:
+
+```html
+<link rel="stylesheet" href="http://lendora-two.vercel.app/assets/lendora.css">
+<form method="POST" action="http://lendora-two.vercel.app/login">
+```
+
+Halaman sendiri disajikan lewat `https://`, sehingga CSS/JS jadi **mixed
+content** dan diblokir browser **tanpa pesan error di console** — itulah
+kenapa kelihatan "CSS-nya hilang" padahal file-nya baik. Form yang mengarah
+ke `http://` memicu peringatan tersebut.
+
+**Cek cepat:**
+
+```bash
+curl -s https://lendora-two.vercel.app/login | grep -oE 'href="[^"]*lendora\.css[^"]*"'
+# harus diawali https://
+```
+
+**Perbaikan:** pastikan `APP_URL` di Vercel diawali `https://` dan cocok
+dengan domain deployment. `AppServiceProvider` memaksa skema ke `https`
+berdasarkan scheme `APP_URL` — bukan berdasarkan `APP_ENV`, karena
+`APP_ENV` tidak selalu sampai ke container.
+
+Kalau URL sudah `https://` tapi `$request->secure()` masih `false`
+(mis. cookie sesi tidak pernah ditandai secure), tambahkan
+`TRUSTED_PROXIES=*` juga.
+
+> Catatan: jangan shotgun dengan `URL::forceScheme()` tanpa syarat
+> `APP_URL` — itu membuat setiap halaman keluar `https` termasuk saat
+> pengembangan lokal.
