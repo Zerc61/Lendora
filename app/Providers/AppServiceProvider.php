@@ -9,6 +9,7 @@ use App\Models\MaintenanceTicket;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Observers\AuditableObserver;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Pagination & asset kustom (tanpa build step)
+        Paginator::defaultView('pagination::lendora');
+        Paginator::defaultSimpleView('pagination::lendora');
+
         // Super Admin lolos semua authorization (PDF bag. 3)
         Gate::before(function ($user, string $ability) {
             return $user instanceof User && $user->hasRole('super-admin') ? true : null;

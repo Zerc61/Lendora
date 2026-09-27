@@ -45,4 +45,42 @@ class User extends Authenticatable
     {
         return ($this->notification_preferences['email_enabled'] ?? true) === true;
     }
+
+    /**
+     * Role utama untuk kebutuhan layout & navigasi.
+     * Super-admin memakai shell "admin" (konsol penuh).
+     */
+    public function primaryRole(): string
+    {
+        foreach (['super-admin', 'admin', 'staff', 'technician', 'borrower'] as $role) {
+            if ($this->hasRole($role)) {
+                return $role === 'super-admin' ? 'admin' : $role;
+            }
+        }
+
+        return 'borrower';
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->primaryRole()) {
+            'admin' => $this->hasRole('super-admin') ? 'Super Admin' : 'Administrator',
+            'staff' => 'Staf Operasional',
+            'technician' => 'Teknisi',
+            default => 'Peminjam',
+        };
+    }
+
+    /** Inisial untuk avatar. */
+    public function initials(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->name)) ?: [];
+        $letters = mb_strtoupper(mb_substr($parts[0] ?? '?', 0, 1));
+
+        if (count($parts) > 1) {
+            $letters .= mb_strtoupper(mb_substr(end($parts), 0, 1));
+        }
+
+        return $letters;
+    }
 }

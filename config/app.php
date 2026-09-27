@@ -43,6 +43,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Asset Version
+    |--------------------------------------------------------------------------
+    |
+    | Cache-busting untuk CSS/JS statis di public/assets (tanpa build step).
+    | Naikkan nilainya setiap kali lendora.css / lendora.js berubah.
+    |
+    */
+
+    'asset_version' => env('ASSET_VERSION', '1'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

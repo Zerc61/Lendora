@@ -25,6 +25,19 @@ enum MaintenanceStatus: string
         };
     }
 
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Open => 'warn',
+            self::Assigned => 'info',
+            self::InProgress => 'brand',
+            self::WaitingParts => 'orange',
+            self::Completed => 'accent',
+            self::Verified => 'ok',
+            self::Cancelled => 'muted',
+        };
+    }
+
     public function canTransitionTo(self $target): bool
     {
         return in_array($target, $this->allowedTransitions(), true);

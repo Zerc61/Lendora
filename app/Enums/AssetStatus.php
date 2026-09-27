@@ -25,6 +25,19 @@ enum AssetStatus: string
         };
     }
 
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Available => 'ok',
+            self::Reserved => 'info',
+            self::Borrowed => 'brand',
+            self::Maintenance => 'warn',
+            self::Damaged => 'bad',
+            self::Lost => 'orange',
+            self::Retired => 'muted',
+        };
+    }
+
     public function canTransitionTo(self $target): bool
     {
         return in_array($target, $this->allowedTransitions(), true);

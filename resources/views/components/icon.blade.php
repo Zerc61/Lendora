@@ -1,0 +1,67 @@
+{{-- resources/views/components/icon.blade.php --}}
+{{-- Ikon garis 24×24, warna mengikuti currentColor. --}}
+@props(['name' => 'dot', 'size' => null])
+@php
+    $paths = [
+        'grid' => '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
+        'box' => '<path d="M20.5 7.3 12 3 3.5 7.3v9.4L12 21l8.5-4.3V7.3Z"/><path d="M3.5 7.3 12 11.7l8.5-4.4M12 11.7V21"/>',
+        'calendar' => '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+        'clock' => '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
+        'bag' => '<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+        'in' => '<path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+        'out' => '<path d="M12 21V10m0 0 4 4m-4-4-4 4"/><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"/>',
+        'wrench' => '<path d="M14.5 4.5a4.5 4.5 0 0 0 5.7 5.9l-8.6 8.6a2.4 2.4 0 0 1-3.4-3.4l8.6-8.6a4.5 4.5 0 0 0-2.3-2.5Z"/><path d="M6 4v5M3.5 6.5h5"/>',
+        'alert' => '<path d="M12 4.5 2.8 20h18.4L12 4.5Z"/><path d="M12 10v4.5M12 17.4h.01"/>',
+        'chart' => '<path d="M4 20V4"/><path d="M4 20h16"/><rect x="8" y="12" width="3.4" height="5" rx="1"/><rect x="14" y="8" width="3.4" height="9" rx="1"/>',
+        'users' => '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.1 2.8-4.8 5.5-4.8s4.9 1.7 5.5 4.8"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6M17.6 14.9c1.6.6 2.6 2 2.9 4.6"/>',
+        'user' => '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.7-3.5 3.4-5.5 7-5.5s6.3 2 7 5.5"/>',
+        'building' => '<path d="M4 21V6.5A1.5 1.5 0 0 1 5.5 5h7A1.5 1.5 0 0 1 14 6.5V21"/><path d="M14 10.5h4.5A1.5 1.5 0 0 1 20 12v9"/><path d="M7 9h3M7 13h3M7 17h3M17 14h.01M17 18h.01M2.5 21h19"/>',
+        'tag' => '<path d="M3.5 11.6V5.5a2 2 0 0 1 2-2h6.1a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-5.1 5.1a2 2 0 0 1-2.8 0l-7-7a2 2 0 0 1-.6-1.4Z"/><circle cx="8.2" cy="8.2" r="1.4"/>',
+        'layers' => '<path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/><path d="M3 12.5 12 17l9-4.5M3 16.8 12 21.3l9-4.5"/>',
+        'pin' => '<path d="M12 21s6.5-5.6 6.5-10.2A6.5 6.5 0 0 0 5.5 10.8C5.5 15.4 12 21 12 21Z"/><circle cx="12" cy="10.5" r="2.4"/>',
+        'bell' => '<path d="M18 15.5V11a6 6 0 0 0-4.2-5.7V4.5a1.8 1.8 0 0 0-3.6 0v.8A6 6 0 0 0 6 11v4.5L4.5 18h15L18 15.5Z"/><path d="M9.8 18a2.3 2.3 0 0 0 4.4 0"/>',
+        'scan' => '<path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5"/><path d="M3.5 12h17"/>',
+        'qr' => '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><path d="M13.5 13.5h3v3h-3zM19.5 13.5h.01M13.5 19.5h3M19.5 19.5h.01"/>',
+        'scroll' => '<path d="M6 3.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7"/><path d="M6 3.5a2 2 0 0 0-2 2V6a1.5 1.5 0 0 0 1.5 1.5H6v12a2 2 0 0 0 2 2"/><path d="M9.5 8h6M9.5 12h6M9.5 16h3.5"/>',
+        'check' => '<path d="M4.5 12.5 9.5 17.5 19.5 7"/>',
+        'check-circle' => '<circle cx="12" cy="12" r="8.7"/><path d="M8.2 12.3 11 15l5-5.4"/>',
+        'x' => '<path d="M6 6l12 12M18 6 6 18"/>',
+        'plus' => '<path d="M12 5v14M5 12h14"/>',
+        'minus' => '<path d="M5 12h14"/>',
+        'chevron-right' => '<path d="M9 5.5 15.5 12 9 18.5"/>',
+        'chevron-down' => '<path d="M5.5 9 12 15.5 18.5 9"/>',
+        'chevron-left' => '<path d="M15 5.5 8.5 12 15 18.5"/>',
+        'arrow-left' => '<path d="M19 12H5m0 0 5.5-5.5M5 12l5.5 5.5"/>',
+        'arrow-right' => '<path d="M5 12h14m0 0-5.5-5.5M19 12l-5.5 5.5"/>',
+        'download' => '<path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M4.5 18.5h15"/>',
+        'printer' => '<path d="M7 8.5V4h10v4.5"/><rect x="4" y="8.5" width="16" height="7.5" rx="2"/><path d="M7 14h10v6H7z"/>',
+        'search' => '<circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.4 15.4 20 20"/>',
+        'filter' => '<path d="M4 5.5h16l-6.2 7.3v5.4l-3.6 2v-7.4L4 5.5Z"/>',
+        'eye' => '<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>',
+        'edit' => '<path d="M15.5 4.5 19.5 8.5 8 20H4v-4l11.5-11.5Z"/><path d="M13.5 6.5 17.5 10.5"/>',
+        'trash' => '<path d="M4.5 7h15M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/><path d="M10.5 10.5v6M13.5 10.5v6"/>',
+        'settings' => '<circle cx="12" cy="12" r="2.8"/><path d="M12 3.5v2.2M12 18.3v2.2M4.9 7.8l1.9 1.1M17.2 15.1l1.9 1.1M4.9 16.2l1.9-1.1M17.2 8.9l1.9-1.1"/>',
+        'logout' => '<path d="M9 4.5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3"/><path d="M14.5 8.5 19 12l-4.5 3.5M19 12H9"/>',
+        'menu' => '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        'camera' => '<path d="M4 8.5h3l1.6-2.4h6.8L17 8.5h3a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5Z"/><circle cx="12" cy="13.5" r="3.4"/>',
+        'image' => '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17.5l4.8-4.4 3.4 3 2.4-2.2 4.4 3.9"/>',
+        'video' => '<rect x="3" y="6" width="12.5" height="12" rx="2.5"/><path d="M15.5 11 21 8v8l-5.5-3"/>',
+        'file' => '<path d="M13.5 3.5H7A2 2 0 0 0 5 5.5v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-5.5-5.5Z"/><path d="M13.5 3.5V9H19"/>',
+        'shield' => '<path d="M12 3.5 5 6.2v5.3c0 4.3 2.9 7.7 7 9 4.1-1.3 7-4.7 7-9V6.2L12 3.5Z"/><path d="M9.2 12.2 11.2 14.2 15 10.4"/>',
+        'clipboard' => '<rect x="5" y="5" width="14" height="16" rx="2.2"/><path d="M9 5V3.8h6V5M9 11h6M9 15h4"/>',
+        'sparkle' => '<path d="M12 3.5 13.6 9 19 10.5 13.6 12 12 17.5 10.4 12 5 10.5 10.4 9 12 3.5Z"/><path d="M18.5 15.5l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"/>',
+        'play' => '<path d="M8 5.5 18.5 12 8 18.5v-13Z"/>',
+        'pause' => '<path d="M9 5.5v13M15 5.5v13"/>',
+        'send' => '<path d="M4 12 20.5 4.5 15 20.5l-3.4-6.1L4 12Z"/>',
+        'external' => '<path d="M14 4.5h5.5V10"/><path d="M19 5 11 13"/><path d="M18 14.5v4A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6h4"/>',
+        'refresh' => '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.5 4v4.5H16"/>',
+        'dot' => '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
+        'info' => '<circle cx="12" cy="12" r="8.7"/><path d="M12 11v5.5M12 7.8h.01"/>',
+        'flag' => '<path d="M6 21V4.5h10.5M6 4.5h10.5l-1.8 3.5 1.8 3.5H6"/>',
+    ];
+@endphp
+<svg {{ $attributes->merge(['class' => 'icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"
+     @if ($size) width="{{ $size }}" height="{{ $size }}" @endif>
+    {!! $paths[$name] ?? $paths['dot'] !!}
+</svg>

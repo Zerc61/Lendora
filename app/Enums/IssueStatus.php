@@ -21,6 +21,16 @@ enum IssueStatus: string
         };
     }
 
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Open => 'bad',
+            self::Investigating => 'warn',
+            self::Resolved => 'ok',
+            self::Rejected, self::Closed => 'muted',
+        };
+    }
+
     public function canTransitionTo(self $target): bool
     {
         return in_array($target, $this->allowedTransitions(), true);
