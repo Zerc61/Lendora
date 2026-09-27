@@ -1,0 +1,62 @@
+# .dockerignore — dipakai saat build image.
+#
+# Tanpa file ini, `COPY . .` akan menyalin seluruh direktori kerja ke dalam
+# image: termasuk .env (kredensial DB!), vendor/ (ratusan MB, lalu ditimpa
+# hasil stage 1), dan log. Build jadi lambat besar dan kredensial ikut
+# ter-baked ke layer image.
+
+# --- Kredensial: TIDAK BOLEH masuk image ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+auth.json
+
+# Lendora memakai MySQL. File ini sisa generator Laravel dan tidak terpakai.
+database/database.sqlite
+
+# --- Dependency yang disuplai stage build, bukan dari context ---
+/vendor
+/node_modules
+
+# --- Runtime & artefak lokal ---
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/bootstrap/cache/*.php
+
+# --- VCS & tooling ---
+/.git
+/.github
+/.gitignore
+/.gitattributes
+/.editorconfig
+/.vscode
+/.idea
+/.zed
+/.claude
+/.codex
+/.cursor
+
+# --- Test & dokumen tidak perlu di image produksi ---
+/tests
+/phpunit.xml
+/.phpunit.result.cache
+/docs
+/README.md
+/AGENTS.md
+/CLAUDE.md
+/lendora
+
+# stub otomatis dari "php artisan serve" — bukan bagian aplikasi
+/api
+
+# build output Vite tidak dipakai sama sekali oleh Lendora
+/public/build
+/public/hot
+/public/storage

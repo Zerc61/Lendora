@@ -18,13 +18,7 @@
         {{-- Identitas --}}
         <x-card title="Identitas" icon="user" :delay="0">
             <div class="cell-media profile-head">
-                <span class="avatar avatar--xl {{ $user->hasPhoto() ? '' : 'avatar--plain' }}">
-                    @if ($user->hasPhoto())
-                        <img src="{{ $user->photoUrl() }}" alt="Foto {{ $user->name }}">
-                    @else
-                        {{ $user->initials() }}
-                    @endif
-                </span>
+                <x-avatar :user="$user" size="xl" />
                 <div class="cell-media__body">
                     <b class="truncate">{{ $user->name }}</b>
                     <span class="truncate">{{ $user->email }}</span>

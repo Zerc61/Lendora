@@ -43,7 +43,7 @@
             @forelse ($toCheckout as $i => $borrowing)
                 <a class="list__row list__row--link" href="{{ route('admin.checkout.show', $borrowing) }}"
                    style="--d:{{ $i * 45 }}ms">
-                    <span class="avatar avatar--plain">{{ $borrowing->borrower?->initials() ?? '?' }}</span>
+                    <x-avatar :user="$borrowing->borrower" plain />
                     <span class="list__main">
                         <b>{{ $borrowing->borrower?->name ?? 'Peminjam dihapus' }}</b>
                         <span class="table__code">{{ $borrowing->code }}</span>
@@ -69,7 +69,7 @@
             @forelse ($toCheckin as $i => $borrowing)
                 <a class="list__row list__row--link" href="{{ route('admin.checkin.show', $borrowing) }}"
                    style="--d:{{ $i * 45 }}ms">
-                    <span class="avatar avatar--plain">{{ $borrowing->borrower?->initials() ?? '?' }}</span>
+                    <x-avatar :user="$borrowing->borrower" plain />
                     <span class="list__main">
                         <b>{{ $borrowing->borrower?->name ?? 'Peminjam dihapus' }}</b>
                         <span class="table__code">{{ $borrowing->code }}</span>

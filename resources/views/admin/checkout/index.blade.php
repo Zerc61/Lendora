@@ -41,7 +41,7 @@
             $kode = $b->items->map(fn ($i) => $i->asset?->asset_code)->filter()->values();
         @endphp
         <div class="list__row list__row--link" style="--d:{{ min($i, 5) * 50 }}ms">
-            <span class="avatar avatar--plain">{{ $b->borrower?->initials() ?? '?' }}</span>
+            <x-avatar :user="$b->borrower" plain />
             <span class="list__main">
                 <b>
                     <a href="{{ route('admin.checkout.show', $b) }}">{{ $b->borrower?->name ?? 'Peminjam dihapus' }}</a>

@@ -41,7 +41,7 @@
                     <dt>Pemohon</dt>
                     <dd>
                         <span class="cell-media">
-                            <span class="avatar avatar--plain">{{ $reservation->user?->initials() ?? '?' }}</span>
+                            <x-avatar :user="$reservation->user" plain />
                             <span class="cell-media__body">
                                 <b>{{ $reservation->user?->name ?? 'Peminjam dihapus' }}</b>
                                 <span>{{ $reservation->user?->organization?->name ?? 'Tanpa organisasi' }}</span>

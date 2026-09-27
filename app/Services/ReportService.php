@@ -94,14 +94,36 @@ class ReportService
     }
 
     /** Tren peminjaman 6 bulan terakhir (dashboard) */
-    public function borrowingTrend(): Collection
+    /**
+     * Tren check-out 6 bulan terakhir, **selalu 6 baris**.
+     *
+     * Penting: seri harus kontinu. Kalau hanya bulan yang punya transaksi yang
+     * dikembalikan, grafik menampilkan tonggol jauh dari kiri dan bulan kosong
+     * terlihat seperti "tidak ada data" padahal hanya 0 transaksi.
+     */
+    public function borrowingTrend(int $months = 6): Collection
     {
-        return Borrowing::query()
+        $since = now()->startOfMonth()->subMonths($months - 1);
+
+        $counts = Borrowing::query()
             ->whereNotNull('checked_out_at')
-            ->where('checked_out_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->where('checked_out_at', '>=', $since)
             ->selectRaw("DATE_FORMAT(checked_out_at, '%Y-%m') AS month, COUNT(*) AS total")
             ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+            ->pluck('total', 'month');
+
+        return collect(range(0, $months - 1))
+            ->map(function (int $back) use ($counts) {
+                $date = now()->startOfMonth()->subMonths($back);
+                $key = $date->format('Y-m');
+
+                return [
+                    'month' => $key,
+                    'label' => $date->locale('id')->translatedFormat('M Y'),
+                    'total' => (int) ($counts[$key] ?? 0),
+                ];
+            })
+            ->reverse()
+            ->values();
     }
 }

@@ -43,15 +43,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Asset Version
+    | Asset Version  (DIHAPUS)
     |--------------------------------------------------------------------------
     |
-    | Cache-busting untuk CSS/JS statis di public/assets (tanpa build step).
-    | Naikkan nilainya setiap kali lendora.css / lendora.js berubah.
+    | Cache-busting CSS/JS tidak lagi memakai nomor versi manual. Dulu ada
+    | `asset_version` di sini, tapi nilainya praktis tidak pernah diubah
+    | sehingga hardcode "1" membuat browser tetap memakai CSS lama setelah
+    | patch baru — sumber utama laporan "saya sudah ubah tapi tidak berubah".
+    |
+    | Sekarang partials/head memakai filemtime() per file, jadi URL aset
+    | berubah otomatis begitu file disentuh dan tidak ada tombol yang harus
+    | ditekan. Jangan menambahkan kembali knob ini.
     |
     */
-
-    'asset_version' => env('ASSET_VERSION', '1'),
 
     /*
     |--------------------------------------------------------------------------

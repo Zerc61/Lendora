@@ -237,6 +237,26 @@
     });
   }
 
+  /* ── Show/hide password ────────────────────────────────────────────────
+     Dipakai di login dan di form ganti-password (/profile). Handler-nya
+     dipasang global di file ini, bukan inline di tiap blade, supaya tidak
+     ada duplikasi dan aria-pressed selalu sinkron dengan state input. */
+  function initPasswordToggle() {
+    $$('[data-pw-toggle]').forEach((btn) => {
+      const input = document.getElementById(btn.dataset.pwToggle);
+      if (!input) return;
+      btn.addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.classList.toggle('is-visible', show);
+        btn.setAttribute('aria-pressed', String(show));
+        btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+        // Fokus tetap di input supaya keyboard tidak terlempar ke body.
+        input.focus({ preventScroll: true });
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initMenus();
     initRail();
@@ -249,5 +269,6 @@
     initTabs();
     initSubmitState();
     initScrollShadow();
+    initPasswordToggle();
   });
 })();

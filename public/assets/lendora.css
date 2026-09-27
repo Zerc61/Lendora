@@ -173,7 +173,11 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 .app__body {
   flex: 1;
   padding: 26px 30px 60px;
-  max-width: 1560px;
+  /* Isi lebar yang tersedia; capping hanya relevan di monitor sangat lebar.
+     Dulu 1560px tanpa margin-inline:auto → di 1920px sisa 98px menumpuk
+     seluruhnya di kanan dan terlihat seperti layout tidak selesai. */
+  max-width: 1920px;
+  margin-inline: auto;
   width: 100%;
 }
 /* Ritme vertikal: setiap blok tingkat atas selalu punya jarak dari blok
@@ -746,7 +750,9 @@ a.chip:hover { color: var(--text); border-color: var(--border-3); background: va
 .table tbody tr:last-child td { border-bottom: 0; }
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .table .col-actions { text-align: right; white-space: nowrap; width: 1%; }
-.table__code { font-family: var(--mono); font-size: .78rem; font-weight: 700; color: var(--text); }
+/* nowrap wajib: kode aset dipatah di batas "-" kalau kolomnya terjepit, jadi
+   "LND-LAB-0001" tampil 3 baris dan jauh lebih sulit dibaca daripada melebar. */
+.table__code { font-family: var(--mono); font-size: .78rem; font-weight: 700; color: var(--text); white-space: nowrap; }
 .table__sub { display: block; font-size: .7rem; color: var(--dim); margin-top: 1px; }
 .table a { color: var(--text); }
 .table a:hover { color: var(--primary-2); }
@@ -996,20 +1002,36 @@ input[type=file]::file-selector-button {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── 17. Progress / meters / bars ──────────────────────────────────────── */
-.meter { height: 7px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; border: 1px solid var(--border); }
+/* `.meter` & `.meter__fill` keduanya <span>, jadi WAJIB display:block.
+   Default-nya inline → kotak 0×0, dan scaleX() pada kotak nol tidak terlihat
+   sama sekali: yang tampil hanya track abu-abu, angka jadi satu-satunya sumber
+   informasi. Zarur ada display:block di sini, bukan sekadar height. */
+.meter { display: block; height: 7px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; border: 1px solid var(--border); }
 .meter__fill {
+  display: block;
+  width: var(--w, 0%);
   height: 100%;
   border-radius: var(--r-full);
   background: var(--grad);
-  transform-origin: left;
   animation: grow var(--dur-4) var(--ease) both;
   animation-delay: var(--d, 120ms);
 }
-@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(var(--w, 1)); } }
-.meter--ok .meter__fill { background: linear-gradient(90deg, #34D399, #10B981); }
-.meter--warn .meter__fill { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
-.meter--bad .meter__fill { background: linear-gradient(90deg, #F87171, #EF4444); }
+/* Animasi width, bukan scaleX(var(--w)). Alasannya dua:
+   1. --w berisi satuan persen ("68%") yang tidak valid untuk scaleX().
+   2. Under prefers-reduced-motion animation dimatikan — dengan width:var(--w)
+      bar tetap panjangnya benar, dengan scaleX() bar jadi 100% semua. */
+@keyframes grow { from { width: 0; } to { width: var(--w, 0%); } }
+
+/* Warna memakai token tone yang sama dengan badge, supaya bar dan labelnya
+   selalu konsisten. Tanpa .meter--info / --orange / --muted, semua bar
+   jatuh ke var(--grad) ungu dan warnanya tidak lagi membedakan status. */
+.meter--ok .meter__fill { background: linear-gradient(90deg, var(--ok), color-mix(in srgb, var(--ok) 65%, #000)); }
+.meter--warn .meter__fill { background: linear-gradient(90deg, var(--warn), color-mix(in srgb, var(--warn) 65%, #000)); }
+.meter--bad .meter__fill { background: linear-gradient(90deg, var(--bad), color-mix(in srgb, var(--bad) 65%, #000)); }
+.meter--orange .meter__fill { background: linear-gradient(90deg, var(--orange), color-mix(in srgb, var(--orange) 65%, #000)); }
+.meter--info .meter__fill { background: linear-gradient(90deg, var(--info), color-mix(in srgb, var(--info) 65%, #000)); }
 .meter--accent .meter__fill { background: linear-gradient(90deg, #22D3EE, #0891B2); }
+.meter--muted .meter__fill { background: linear-gradient(90deg, var(--muted), color-mix(in srgb, var(--muted) 65%, #000)); }
 
 /* Track label 72px (bukan 96px): minimum bar-row jadi 130px, sehingga muat di
    kolom sempit. Label panjang tetap terpotong ellipsis, bukan memaksa overflow. */
@@ -1414,8 +1436,13 @@ input[type=file]::file-selector-button {
 .shell--borrower { --primary: #7C5CFC; --rail: 0px; }
 
 .app--stack { grid-template-columns: minmax(0, 1fr); }
-.shell--borrower .app__body { max-width: 1140px; margin-inline: auto; }
-.shell--technician .app__body { max-width: 1440px; }
+/* CATATAN: max-width shell borrower DITENTUKAN di blok patch bawah
+   ("Konten: max-width = kunci kerapian desktop"). Jangan diduplikasi di sini —
+   dua aturan untuk selektor yang sama pasti salah satu diam-diam kalah
+   sesuai urutan sumber, dan itu yang membuat cap lama tidak pernah berubah. */
+/* Teknisi: TIDAK ada cap. Rail hanya 92px, jadi di 1920px konten tersedia
+   1828px — cap 1440px lama menyisakan 388px kosong di kanan, persis keluhan
+   "bagian kanan tidak kosong". Tabel tiket memang paling diuntungkan lebar. */
 
 /* context strip (admin) */
 .ops-strip {
@@ -1752,7 +1779,9 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .stack { gap: var(--gap, 14px); }
   .topbar { padding: 0 14px; gap: 10px; }
   .topbar__title span { display: none; }
-  .search { display: none; }
+  /* Catatan: JANGAN `.search { display: none }` di sini. Selektor global itu
+     ikut mematikan kolom Pencarian di dalam filter-bar — satu-satunya cara
+     memfilter di ponsel. Topbar sudah pakai `hide-sm` sendiri. */
   .card { padding: 15px; border-radius: var(--r-md); }
   .card--pad-lg { padding: 17px; }
   .card__foot { margin: 14px -15px -15px; padding: 11px 15px; }
@@ -1769,6 +1798,48 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .table th, .table td { padding: 9px 10px; }
   .table th { font-size: .66rem; letter-spacing: .1em; }
   .hide-sm { display: none !important; }
+
+  /* ── Tabel → kartu ────────────────────────────────────────────────────────
+     Badge status/kondisi ("DIRESERVASI", "SANGAT BAIK") tidak pernah mau
+     menyusut. Di 390px enam kolom itu memaksa kolom Aset terjepit ke
+     30px: kode terpotong 3 baris dan tabel meluber 68px. Di lebar ini tabel
+     jadi kartu bertumpuk — label diambil dari atribut data-label tiap <td>. */
+  .table--cards, .table--cards tbody, .table--cards tr, .table--cards td { display: block; }
+  .table--cards tr { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .table--cards tr:last-child { border-bottom: 0; }
+  .table--cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 5px 0;
+    border: 0;
+    text-align: right;
+  }
+  .table--cards td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: left;
+  }
+  /* Kolom pertama jadi judul kartu: penuh lebar, tanpa label, dipisah garis. */
+  .table--cards td:first-child {
+    display: block;
+    padding: 0 0 9px;
+    margin-bottom: 5px;
+    border-bottom: 1px dashed var(--border);
+    text-align: left;
+  }
+  .table--cards td:first-child::before { content: none; }
+  /* Kolom aksi: tombol rata kanan, tanpa label. */
+  .table--cards td.col-actions { justify-content: flex-end; padding-top: 10px; }
+  .table--cards td.col-actions::before { content: none; }
+  /* Baris kosong (colspan) tetap blok penuh. */
+  .table--cards td[colspan] { display: block; padding: 0; text-align: left; }
   .btn { height: 36px; }
   .btn--lg { height: 44px; }
   .deck { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -1785,7 +1856,12 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   *, *::before, *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
+    /* Delay HARUS ikut direset. Animasi auth memakai fill-mode `both` dengan
+       stagger sampai .6s; tanpa ini elemen tetap menampilkan frame `from`
+       (opacity 0) selama penundaan, jadi konten hilang hampir 1 detik. */
+    animation-delay: 0s !important;
     transition-duration: .01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
   .meter__fill, .spark__bar, .card, .stat, .list__row, .timeline__item, .page-head { animation: none !important; }
@@ -1855,14 +1931,21 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 
 .appbar__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* ---------- Konten: max-width = kunci kerapian desktop ----------
-   Hanya shell borrower. Rule global akan menyempitkan shell admin yang
-   butuh lebar penuh (grafik + insight) dan memicu overflow horizontal. */
+/* ---------- Konten: max-width shell borrower ----------
+   1200px → 1440px supaya borrower mendapat lebar yang sama dengan shell lain
+   (halaman katalog & daftar jadi tidak sempit di tengah layar 1920px).
+   Tetap di-cap: field formulir profil akan melebar absurd di monitor 4K.
+   Shell admin & teknisi TIDAK di-cap — keduanya memakai cap global 1920px
+   di .app__body, sehingga memakai lebar yang tersedia. */
 .shell--borrower .app__body {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1440px;
   margin-inline: auto;
-  padding: clamp(16px, 2.5vw, 28px) clamp(14px, 3vw, 28px) 110px;
+  /* Padding bawah 150px (bukan 110px) di bawah 1024px: shell borrower punya
+     FAB fixed yang menjulang sampai 134px dari bawah (bottom 78 + tinggi 56).
+     Dengan 110px baris terakhir kv tertutup FAB DAN bottomnav — keduanya
+     `position: fixed`, jadi isinya tetap di atas konten. */
+  padding: clamp(16px, 2.5vw, 28px) clamp(14px, 3vw, 28px) 150px;
 }
 @media (min-width: 1024px) { .shell--borrower .app__body { padding-bottom: 48px; } }
 
@@ -1954,40 +2037,272 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 .auth__main { display: grid; place-items: center; padding: 32px 22px; }
 .auth__panel { width: min(392px, 100%); }
 
-/* Kartu login: brand + form dalam satu blok supaya di phone tidak perlu
-   menggulir melewati dua kartu terpisah. */
-.auth-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 22px 20px;
-  animation: rise var(--dur-4) var(--ease) both;
+/* ==========================================================================
+   LENDORA — AUTH v2 (pengganti patch auth sebelumnya)
+   Desktop >640px : kartu ter-center di panel kanan, panel brand tetap tampil
+   Phone  ≤640px  : imersif — orb ungu kiri-atas, judul besar, input pill,
+                    tombol pill kanan-bawah
+   Catatan markup: layouts/auth.blade.php punya wrapper tambahan
+   `.auth__main > .auth__panel` di dalam `.auth`. Aturan di blok ini ditulis
+   terhadap wrapper itu, kalau tidak kartu di phone tidak akan full-bleed.
+   ========================================================================== */
+
+/* ---------- Shell: tinggi layar penuh, TANPA padding & centering ----------
+   `.auth` punya dua kolom (aside brand + main form) yang masing-masing sudah
+   membawa padding sendiri (44px dan 32px 22px). Jadi di level ini:
+
+   - `place-items: center` TIDAK BOLEH. Grid item default-nya `stretch`;
+     begitu di-center, aside brand menyusut jadi seukuran isinya sehingga kolom
+     kiri tampak seperti kotak kecil melayang (bug "background kiri kecil").
+   - Padding luar juga tidak, kalau tidak aside ter-inset 40px lagi di dalam
+     aside yang sudah padding 44px.
+
+   Centering kartu tetap ditangani `.auth__main` (display:grid; place-items:center). */
+.shell--auth .auth {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  box-sizing: border-box;
+  width: 100%;
 }
-.auth-card__head { text-align: center; margin-bottom: 20px; }
-.auth-card__logo { margin: 0 auto 12px; }
-.auth-card__title { font-size: 1.15rem; letter-spacing: -.02em; }
-.auth-card__sub { margin-top: 4px; font-size: .8rem; color: var(--muted); }
-.auth-card__legal { margin-top: 16px; text-align: center; font-size: .68rem; color: var(--dim); }
 
-.auth-form { display: grid; gap: 14px; }
-.auth-form .btn { margin-top: 2px; }
+/* Orb hanya di phone — di desktop panel brand sudah punya glow-nya sendiri. */
+.auth-glow { display: none; }
 
+/* Logo brand kit (PNG) — hanya di phone. Desktop tetap pakai SVG <x-logo>
+   yang jauh lebih ringan. `display: none` di sini cuma untuk Tata letak; yang
+   menahan unduhan 26KB di desktop adalah <picture> + <source media> di blade. */
+.auth-mark { display: none; }
+
+/* ---------- Kartu (desktop) ---------- */
+.auth-card {
+  position: relative;
+  width: min(100%, 420px);
+  padding: clamp(22px, 5vw, 32px);
+  border: 1px solid var(--border, #252B38);
+  border-radius: 20px;
+  background: var(--surface, #121722);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  animation: auth-in .35s ease both;
+}
+@keyframes auth-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.auth-card__head { text-align: center; margin-bottom: 22px; }
+.auth-card__logo { display: inline-block; }
+.auth-card__title { margin: 12px 0 4px; font-size: clamp(19px, 4.5vw, 22px); letter-spacing: -.2px; }
+.auth-card__sub { margin: 0; color: var(--muted, #8B93A7); font-size: 13.5px; }
+
+/* ---------- Form ---------- */
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+
+.auth-form .field label {
+  display: block; margin-bottom: 6px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted, #8B93A7);
+}
+.auth-form .req { color: var(--bad, #ef4444); }
+
+/* 16px = anti iOS auto-zoom */
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+  width: 100%; min-height: 48px; padding: 12px 14px;
+  font-size: 16px; color: var(--text, #F5F7FA);
+  background: var(--bg, #0B0E14);
+  border: 1px solid var(--border, #252B38);
+  border-radius: 12px; outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.auth-form input:focus {
+  border-color: var(--primary, #7C5CFC);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #7C5CFC) 22%, transparent);
+}
+.auth-form input[aria-invalid="true"] { border-color: var(--bad, #ef4444); }
+.auth-form input::placeholder { color: color-mix(in srgb, var(--muted, #8B93A7) 70%, transparent); }
+
+/* ---------- Password + toggle ---------- */
+.field__password { position: relative; display: flex; }
+.field__password input { padding-right: 46px; }
+.pw-toggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: grid; place-items: center;
+  width: 36px; height: 36px; padding: 0;
+  border: 0; border-radius: 9px;
+  background: transparent; color: var(--muted, #8B93A7); cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+.pw-toggle:hover { color: var(--text, #F5F7FA); background: var(--surface-3); }
+.pw-toggle:focus-visible { outline: none; box-shadow: var(--ring); }
+.pw-toggle svg { grid-area: 1 / 1; }
+.pw-toggle__eye-off { display: none; }
+.pw-toggle.is-visible .pw-toggle__eye { display: none; }
+.pw-toggle.is-visible .pw-toggle__eye-off { display: block; }
+.pw-toggle.is-visible { color: var(--primary-2); }
+
+/* ---------- Checkbox "Ingat saya" (desktop: kartu sentuh) ----------
+   Checkbox native 13px punya target di bawah 44px — mustahil ditekan dengan
+   jari di ponsel. Input-nya disembunyikan (bukan display:none, supaya tetap
+   fokusabel untuk keyboard & screen reader) lalu digantikan kotak 20px. */
+.check--card {
+  position: relative; display: flex; align-items: center; gap: 11px;
+  min-height: 48px; padding: 10px 14px;
+  border: 1px solid var(--border, #252B38); border-radius: 12px;
+  background: color-mix(in srgb, var(--bg, #0B0E14) 60%, transparent);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s ease, background .15s ease;
+}
+.check--card:has(input:checked) {
+  border-color: color-mix(in srgb, var(--primary, #7C5CFC) 55%, transparent);
+  background: color-mix(in srgb, var(--primary, #7C5CFC) 8%, transparent);
+}
+.check--card input { position: absolute; opacity: 0; pointer-events: none; margin: 0; }
+.check__box {
+  flex: 0 0 auto; width: 20px; height: 20px;
+  border: 2px solid var(--border, #252B38); border-radius: 6px;
+  position: relative; transition: background .15s ease, border-color .15s ease;
+}
+.check--card input:checked + .check__box { background: var(--primary, #7C5CFC); border-color: var(--primary, #7C5CFC); }
+.check--card input:checked + .check__box::after {
+  content: ""; position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.check--card input:focus-visible + .check__box {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #7C5CFC) 30%, transparent);
+}
+.check__text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.check__text b { font-size: 13.5px; }
+.check__text small { color: var(--muted, #8B93A7); font-size: 11.5px; }
+
+/* ---------- Legal & error ---------- */
+.auth-card__legal {
+  margin: 18px 0 0; text-align: center; font-size: 11.5px;
+  color: color-mix(in srgb, var(--muted, #8B93A7) 75%, transparent);
+}
+.auth-form .field__error { margin: 6px 0 0; font-size: 12.5px; color: var(--bad, #ef4444); }
+
+/* ---------- Tablet: panel brand disembunyikan, form ter-center ---------- */
 @media (max-width: 1023px) {
-  /* Satu kolom: panel brand hilang, form mengisi lebar layar. */
   .auth { grid-template-columns: minmax(0, 1fr); }
   .auth__aside { display: none; }
-  .auth__main { padding: 20px 16px; align-items: start; }
-  .auth__panel { width: min(440px, 100%); margin-inline: auto; }
+  .auth__main { padding: clamp(20px, 5vw, 40px) 16px; display: grid; place-items: center; }
+  .auth__panel { width: 100%; max-width: 420px; }
 }
 
-@media (max-width: 420px) {
-  .auth__main { padding: 14px 12px; }
-  .auth-card { padding: 18px 15px; border-radius: var(--r-md); }
-  .auth-card__title { font-size: 1.05rem; }
-  .auth-form { gap: 12px; }
-  /* Judul & logo rapat supaya form tidak terdorong ke bawah lipatan. */
-  .auth-card__head { margin-bottom: 16px; }
-  .auth-card__logo { width: 34px; height: 34px; margin-bottom: 10px; }
+/* ==========================================================================
+   PHONE ≤640px — layout imersif sesuai referensi
+   ========================================================================== */
+@media (max-width: 640px) {
+
+  /* Orb ungu besar dari kiri-atas */
+  .auth-glow {
+    display: block;
+    position: fixed;
+    top: -30vw; left: -30vw;
+    width: 110vw; height: 110vw;
+    border-radius: 50%;
+    background: radial-gradient(closest-side,
+      rgba(124, 92, 252, .40) 0%,
+      rgba(124, 92, 252, .20) 46%,
+      rgba(124, 92, 252, .08) 64%,
+      transparent 74%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Wrapper jadi tembus supaya kartu bisa full-screen */
+  .shell--auth .auth { padding: 0; }
+  .shell--auth .auth__main,
+  .shell--auth .auth__panel { padding: 0; margin: 0; width: 100%; max-width: none; display: block; }
+
+  /* Kartu → full-screen transparan, konten didorong ke bawah layar */
+  .auth-card {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 24px 22px calc(30px + env(safe-area-inset-bottom));
+    border: 0; border-radius: 0; box-shadow: none;
+    background: transparent;
+    animation: none;
+    z-index: 1;
+  }
+
+  /* Head: rata kiri, judul besar, logo brand kit menggantikan SVG */
+  .auth-card__head { text-align: left; margin-bottom: 26px; }
+  .auth-card__logo { display: none; }
+  .auth-card__title {
+    margin: 0 0 6px;
+    font-size: clamp(34px, 10vw, 44px);
+    font-weight: 800; letter-spacing: -1.2px; line-height: 1.05;
+  }
+  .auth-title-ext { display: none; } /* di phone cukup "Masuk" */
+  .auth-card__sub { font-size: 13px; }
+
+  /* ---------- Animasi saat pertama dibuka ----------
+     Berjalan sekali saat halaman dimuat lalu berhenti. `both` menahan state
+     akhir supaya elemen tidak kembali ke kondisi awal setelah animasi selesai,
+     sehingga teks tetap selectable & tidak berkedip saat halaman dimuat ulang. */
+  .auth-mark {
+    display: block;
+    width: 60px;
+    margin-bottom: 18px;
+    animation: auth-mark-in .52s cubic-bezier(.34, 1.56, .64, 1) .06s both;
+  }
+  .auth-mark img { display: block; width: 100%; height: auto; }  .auth-card__title { animation: auth-rise .42s var(--ease) .16s both; }
+  .auth-card__sub   { animation: auth-rise .42s var(--ease) .23s both; }
+  .auth-form > *    { animation: auth-rise .40s var(--ease) both; }
+  .auth-form > *:nth-child(1) { animation-delay: .30s; } /* email     */
+  .auth-form > *:nth-child(2) { animation-delay: .37s; } /* password  */
+  .auth-form > *:nth-child(3) { animation-delay: .44s; } /* ingat saya */
+  .auth-form > *:nth-child(4) { animation-delay: .51s; } /* tombol     */
+  .auth-card__legal { animation: auth-fade .40s var(--ease) .60s both; }
+
+  @keyframes auth-mark-in {
+    from { opacity: 0; transform: scale(.62) translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes auth-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes auth-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Input pill */
+  .auth-form { gap: 16px; }
+  .auth-form .field label { margin-bottom: 8px; }
+  .auth-form input[type="email"],
+  .auth-form input[type="password"] {
+    min-height: 52px;
+    padding: 14px 20px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface, #121722) 80%, transparent);
+  }
+  .field__password input { padding-right: 52px; }
+  .pw-toggle { right: 8px; width: 38px; height: 38px; border-radius: 50%; }
+
+  /* Remember: minimal, tanpa kartu */
+  .check--card { border: 0; background: transparent; padding: 2px; min-height: 40px; }
+  .check--card:has(input:checked) { background: transparent; }
+
+  /* Tombol: pill kanan-bawah, tidak full width */
+  .auth-form .btn--block {
+    width: auto;
+    align-self: flex-end;
+    margin-top: 8px;
+    border-radius: 999px;
+    padding: 14px 30px;
+    min-height: 52px;
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--primary, #7C5CFC) 38%, transparent);
+  }
+  .auth-form .btn:active { transform: scale(.97); }
+
+  .auth-card__legal { margin-top: 28px; }
 }
 
 /* ==========================================================================
@@ -2079,3 +2394,11 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 .class-chip:hover { border-color: var(--primary-line); background: var(--primary-soft); color: var(--text); }
 .class-chip b { font-weight: 800; }
 .class-chip span { font-size: .7rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Batang dengan 0 transaksi: tetap ada (sumbu-x kontinu) tapi ditandai
+   redup agar "tidak ada transaksi" terbaca berbeda dari "tidak ada data". */
+.spark__col.is-empty .spark__bar {
+  background: var(--border-2);
+  box-shadow: none;
+}
+.spark__col.is-empty .spark__label { color: var(--dim); opacity: .55; font-weight: 600; }

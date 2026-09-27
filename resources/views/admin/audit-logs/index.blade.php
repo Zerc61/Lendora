@@ -100,7 +100,7 @@
                         </td>
                         <td>
                             <div class="cell-media">
-                                <span class="avatar avatar--plain">{{ $log->actor?->initials() ?? '?' }}</span>
+                                <x-avatar :user="$log->actor" plain />
                                 <div class="cell-media__body">
                                     <b>{{ $log->actor?->name ?? 'Sistem' }}</b>
                                     <span class="truncate">{{ $log->actor?->email ?? 'otomatis' }}</span>

@@ -20,17 +20,16 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Borrower\BorrowingController as BorrowerBorrowingController;
 use App\Http\Controllers\Borrower\ReservationController as BorrowerReservationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ShowcaseController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect()->route('login');
-});
+// Invokable controller, bukan closure: closure tidak bisa di-cache oleh
+// `php artisan route:cache` sehingga build image container akan gagal.
+Route::get('/', HomeController::class)->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

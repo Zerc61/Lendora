@@ -19,8 +19,10 @@ Brand token diambil dari folder `../desain-dan-logo` (mode gelap, aksen ungu + c
 | `resources/views/layouts/*.blade.php` | `admin`, `staff`, `technician`, `borrower`, `auth`, `blank`, `app` (dispatcher) |
 | `resources/views/vendor/pagination/lendora.blade.php` | Pagination tanpa Tailwind (dipakai otomatis) |
 
-Nilai cache-busting CSS/JS: `config('app.asset_version')` (naikkan setiap kali CSS/JS berubah),
-atau set `ASSET_VERSION` di `.env`.
+Cache-busting CSS/JS: otomatis lewat `filemtime()` di `partials/head.blade.php` — URL aset
+mengandung timestamp modifikasi file, jadi setiap edit CSS/JS langsung dimuat browser tanpa
+perlu menaikkan nomor versi secara manual. (Knob `ASSET_VERSION` lama sudah dihapus karena
+praktis tidak pernah diubah sehingga justru menahan browser di aset lama.)
 
 ---
 

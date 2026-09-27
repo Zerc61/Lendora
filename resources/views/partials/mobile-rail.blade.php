@@ -19,7 +19,7 @@
 
     <div class="rail__foot">
         <div class="user-chip" style="cursor:default">
-            <span class="avatar">{{ $user->initials() }}</span>
+            <x-avatar :user="$user" />
             <span class="user-chip__meta">
                 <b>{{ $user->name }}</b>
                 <span>{{ $user->roleLabel() }}</span>

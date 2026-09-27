@@ -101,7 +101,7 @@
                         <td class="hide-sm">
                             @if ($ticket->technician)
                                 <div class="cell-media">
-                                    <span class="avatar avatar--plain">{{ Str::upper(Str::substr($ticket->technician->name, 0, 2)) }}</span>
+                                    <x-avatar :user="$ticket->technician" plain />
                                     <div class="cell-media__body"><b>{{ $ticket->technician->name }}</b></div>
                                 </div>
                             @else

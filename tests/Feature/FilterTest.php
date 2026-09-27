@@ -69,7 +69,10 @@ class FilterTest extends TestCase
         $response->assertSee('ISS-TEST-CRIT', false);
         $response->assertDontSee('ISS-TEST-LOW', false);
 
-        $this->assertSame(1, Issue::where('severity', IssueSeverity::Critical->value)->count());
+        $filtered = Issue::where('severity', IssueSeverity::Critical->value)->pluck('code');
+
+        $this->assertContains('ISS-TEST-CRIT', $filtered);
+        $this->assertNotContains('ISS-TEST-LOW', $filtered);
     }
 
     public function test_filter_priority_tiket_menyaring(): void
@@ -106,7 +109,12 @@ class FilterTest extends TestCase
         $response->assertSee('TKT-TEST-CRIT', false);
         $response->assertDontSee('TKT-TEST-LOW', false);
 
-        $this->assertSame(1, MaintenanceTicket::where('priority', MaintenancePriority::Critical->value)->count());
+        // Periksa hasil filter yang sama dengan controller, bukan jumlah absolut
+        // (jumlah dataset berubah setiap kali seeder ditambah).
+        $filtered = MaintenanceTicket::where('priority', MaintenancePriority::Critical->value)->pluck('code');
+
+        $this->assertContains('TKT-TEST-CRIT', $filtered);
+        $this->assertNotContains('TKT-TEST-LOW', $filtered);
     }
 
     public function test_filter_rentang_tanggal_audit_log_menyaring(): void

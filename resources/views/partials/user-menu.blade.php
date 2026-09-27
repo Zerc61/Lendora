@@ -6,7 +6,7 @@
 @endphp
 <div class="menu-anchor">
     <button type="button" class="{{ $compact ?? false ? 'icon-btn' : 'user-chip' }}" data-menu="{{ $menuId }}" aria-label="Menu akun">
-        <span class="avatar">{{ $user->initials() }}</span>
+        <x-avatar :user="$user" />
         @unless ($compact ?? false)
             <span class="user-chip__meta">
                 <b>{{ \Illuminate\Support\Str::limit($user->name, 22) }}</b>

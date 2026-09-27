@@ -40,10 +40,10 @@
                 @php $maxTrend = max(1, $trend->max('total')); @endphp
                 <div class="spark">
                     @foreach ($trend as $i => $row)
-                        <div class="spark__col">
-                            <div class="spark__bar" style="height:{{ max(4, round($row->total / $maxTrend * 100)) }}%;--d:{{ $i * 70 }}ms"
-                                 data-value="{{ $row->total }}"></div>
-                            <span class="spark__label">{{ \Illuminate\Support\Str::limit($row->month, 7) }}</span>
+                        <div class="spark__col {{ $row['total'] === 0 ? 'is-empty' : '' }}">
+                            <div class="spark__bar" style="height:{{ max(4, round($row['total'] / $maxTrend * 100)) }}%;--d:{{ $i * 70 }}ms"
+                                 data-value="{{ $row['total'] }}"></div>
+                            <span class="spark__label">{{ $row['label'] }}</span>
                         </div>
                     @endforeach
                 </div>

@@ -12,13 +12,7 @@
         {{-- Foto profil --}}
         <x-card title="Foto Profil" icon="camera" subtitle="JPG, PNG, atau WebP — maksimal 2 MB." :delay="0">
             <div class="cell-media profile-head" style="margin-bottom:16px">
-                <span class="avatar avatar--xl {{ $user->hasPhoto() ? '' : 'avatar--plain' }}">
-                    @if ($user->hasPhoto())
-                        <img src="{{ $user->photoUrl() }}" alt="Foto {{ $user->name }}">
-                    @else
-                        {{ $user->initials() }}
-                    @endif
-                </span>
+                <x-avatar :user="$user" size="xl" />
                 <div class="cell-media__body">
                     <b>{{ $user->name }}</b>
                     <span>{{ $user->hasPhoto() ? 'Foto tersimpan. Unggah yang baru untuk mengganti.' : 'Belum ada foto — sistem memakai inisial.' }}</span>
@@ -58,7 +52,7 @@
             </x-slot:actions>
 
             <div class="cell-media" style="margin-bottom:14px">
-                <span class="avatar avatar--lg">{{ $user->initials() }}</span>
+                <x-avatar :user="$user" size="lg" />
                 <span class="cell-media__body">
                     <b>{{ $user->name }}</b>
                     <span>{{ $user->email }}</span>
@@ -79,7 +73,7 @@
                 </div>
                 <div class="kv__row">
                     <dt>Hak akses</dt>
-                    <dd>{{ $user->getRoleNames()->implode(', ') ?: '—' }}</dd>
+                    <dd>{{ $user->roleLabel() }}</dd>
                 </div>
                 <div class="kv__row">
                     <dt>Status akun</dt>

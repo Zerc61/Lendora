@@ -182,7 +182,7 @@
                                 <td><span class="table__code">{{ $b->code }}</span></td>
                                 <td class="hide-sm">
                                     <div class="cell-media">
-                                        <span class="avatar avatar--plain">{{ $b->borrower?->initials() ?? '?' }}</span>
+                                        <x-avatar :user="$b->borrower" plain />
                                         <div class="cell-media__body"><b>{{ $b->borrower?->name ?? 'Peminjam dihapus' }}</b></div>
                                     </div>
                                 </td>

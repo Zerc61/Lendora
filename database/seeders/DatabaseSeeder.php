@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             SchoolStructureSeeder::class,
             UserSeeder::class,
             MasterDataSeeder::class,
+            AnalyticsDemoSeeder::class,
         ]);
     }
 }

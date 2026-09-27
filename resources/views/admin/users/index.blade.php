@@ -163,13 +163,7 @@
                     <tr>
                         <td>
                             <div class="cell-media">
-                                <span class="avatar {{ $user->hasPhoto() ? '' : 'avatar--plain' }}">
-                                    @if ($user->hasPhoto())
-                                        <img src="{{ $user->photoUrl() }}" alt="Foto {{ $user->name }}">
-                                    @else
-                                        {{ $user->initials() }}
-                                    @endif
-                                </span>
+                                <x-avatar :user="$user" plain />
                                 <span class="cell-media__body">
                                     <b class="truncate">{{ $user->name }}</b>
                                     <span class="truncate">{{ $user->email }}</span>

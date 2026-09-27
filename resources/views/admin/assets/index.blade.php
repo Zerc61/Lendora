@@ -46,7 +46,10 @@
     </x-slot:actions>
 
     <div class="table-wrap">
-        <table class="table">
+        {{-- table--cards: di bawah 720px tiap <tr> jadi kartu bertumpuk, label
+             diambil dari data-label. Borrower membuka halaman ini lewat
+             "Katalog Aset", jadi keterbacaan di ponsel bukan kasus-exclusive. --}}
+        <table class="table table--cards">
             <thead>
                 <tr>
                     <th scope="col">Aset</th>
@@ -66,12 +69,12 @@
                                 <span class="table__sub">{{ $asset->assetType->name }}</span>
                             </a>
                         </td>
-                        <td class="hide-sm">
+                        <td class="hide-sm" data-label="Serial">
                             <span class="mono muted">{{ $asset->serial_number ?? '—' }}</span>
                         </td>
-                        <td><x-status :status="$asset->status" /></td>
-                        <td><x-status :status="$asset->condition" /></td>
-                        <td class="hide-sm muted">{{ $asset->location?->name ?? '—' }}</td>
+                        <td data-label="Status"><x-status :status="$asset->status" /></td>
+                        <td data-label="Kondisi"><x-status :status="$asset->condition" /></td>
+                        <td class="hide-sm muted" data-label="Lokasi">{{ $asset->location?->name ?? '—' }}</td>
                         <td class="col-actions">
                             <x-btn :href="route('admin.assets.show', $asset)" size="sm" variant="ghost" icon="eye"
                                    aria-label="Detail aset {{ $asset->asset_code }}" title="Detail aset" />

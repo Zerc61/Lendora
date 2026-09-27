@@ -1,0 +1,33 @@
+# FrankenPHP + Caddy untuk Lendora.
+#
+# Dua hal yang wajib benar di file ini:
+#
+#  1. Port. Platform container (Vercel) mengarahkan trafik ke port dari env
+#     PORT. Caddy harus mengikutinya, jadi alamat ditulis `:{$PORT:80}`.
+#     Kolom kosong sebelum titik dua berarti listen di semua interface, bukan
+#     hanya localhost — kalau hanya localhost, Vercel dapat 502.
+#
+#  2. Document root. Hanya `public` yang terekspos. Tanpa `root * /app/public`,
+#     file seperti .env atau storage/ bisa diakses langsung dari browser.
+#
+# Karena alamatnya tidak punya nama domain, Caddy tidak akan mencoba membuat
+# sertifikat sendiri — sertifikat sudah dihentikan di edge Vercel.
+
+:{$PORT:80} {
+	root * /app/public
+	encode zstd br gzip
+
+	# Error log ke stderr supaya masuk ke log runtime Vercel. Access log
+	# sengaja tidak diaktifkan: dengan asset yang di-cache, tiap request
+	# hanya jadi baris log tanpa nilai diagnostik.
+	log {
+		output stderr
+		level ERROR
+	}
+
+	# try_files meneruskan request yang tidak cocok file statis ke index.php,
+	# itulah front controller Laravel (/dashboard, /login, dan seterusnya).
+	php_server {
+		try_files {path} index.php
+	}
+}
