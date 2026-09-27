@@ -535,6 +535,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
    kolom melebar melewati track. Nolkan agar kolom bisa menyusut. */
 .grid > *, .stack > *, .deck > * { min-width: 0; }
 .grid--2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+/* Pasangan stat untuk sidebar sempit (~330px). minmax 300px pada .grid--2 tidak
+   pernah muat di kolom 268px, sehingga grid meluber keluar kartu. */
+.grid--pair { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .grid--3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .grid--4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .grid--stats { grid-template-columns: repeat(auto-fit, minmax(172px, 1fr)); gap: 12px; }
@@ -1915,3 +1918,164 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 
 /* ---------- Touch target mobile ---------- */
 @media (max-width: 1023.98px) { .list__row { min-height: 56px; } }
+
+/* ==========================================================================
+   Auth shell (login) — satu kartu, brand & form menyatu di layar sempit.
+   ========================================================================== */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+}
+
+.auth__aside {
+  position: relative;
+  overflow: hidden;
+  padding: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(150deg, rgba(124, 92, 252, .16), rgba(18, 23, 34, .4) 55%), var(--surface-2);
+}
+.auth__glow { position: absolute; border-radius: 50%; pointer-events: none; }
+.auth__glow--a { right: -120px; top: -120px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(124, 92, 252, .34), transparent 66%); }
+.auth__glow--b { left: -90px; bottom: -140px; width: 340px; height: 340px; background: radial-gradient(circle, rgba(34, 211, 238, .18), transparent 66%); }
+
+.auth__brand { position: relative; display: flex; align-items: center; gap: 12px; }
+.auth__brand b { font-size: 1.1rem; }
+
+.auth__pitch { position: relative; max-width: 44ch; }
+.auth__headline { font-size: 1.85rem; line-height: 1.15; margin-top: 8px; letter-spacing: -.02em; }
+.auth__lede { margin-top: 10px; font-size: .88rem; color: var(--muted); }
+.auth__badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.auth__legal { position: relative; font-size: .68rem; color: var(--dim); }
+
+.auth__main { display: grid; place-items: center; padding: 32px 22px; }
+.auth__panel { width: min(392px, 100%); }
+
+/* Kartu login: brand + form dalam satu blok supaya di phone tidak perlu
+   menggulir melewati dua kartu terpisah. */
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px 20px;
+  animation: rise var(--dur-4) var(--ease) both;
+}
+.auth-card__head { text-align: center; margin-bottom: 20px; }
+.auth-card__logo { margin: 0 auto 12px; }
+.auth-card__title { font-size: 1.15rem; letter-spacing: -.02em; }
+.auth-card__sub { margin-top: 4px; font-size: .8rem; color: var(--muted); }
+.auth-card__legal { margin-top: 16px; text-align: center; font-size: .68rem; color: var(--dim); }
+
+.auth-form { display: grid; gap: 14px; }
+.auth-form .btn { margin-top: 2px; }
+
+@media (max-width: 1023px) {
+  /* Satu kolom: panel brand hilang, form mengisi lebar layar. */
+  .auth { grid-template-columns: minmax(0, 1fr); }
+  .auth__aside { display: none; }
+  .auth__main { padding: 20px 16px; align-items: start; }
+  .auth__panel { width: min(440px, 100%); margin-inline: auto; }
+}
+
+@media (max-width: 420px) {
+  .auth__main { padding: 14px 12px; }
+  .auth-card { padding: 18px 15px; border-radius: var(--r-md); }
+  .auth-card__title { font-size: 1.05rem; }
+  .auth-form { gap: 12px; }
+  /* Judul & logo rapat supaya form tidak terdorong ke bawah lipatan. */
+  .auth-card__head { margin-bottom: 16px; }
+  .auth-card__logo { width: 34px; height: 34px; margin-bottom: 10px; }
+}
+
+/* ==========================================================================
+   Navbar filter peran (daftar pengguna)
+   ========================================================================== */
+.role-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.role-nav::-webkit-scrollbar { display: none; }
+
+.role-nav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: var(--r-sm);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+.role-nav__item:hover { background: var(--surface-hover); color: var(--text); }
+.role-nav__item.is-active {
+  background: var(--primary-soft);
+  color: var(--primary-2);
+  box-shadow: inset 0 0 0 1px var(--primary-line);
+}
+.role-nav__item svg { width: 15px; height: 15px; }
+
+.role-nav__count {
+  min-width: 20px;
+  height: 19px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  color: var(--dim);
+  font-size: .68rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.role-nav__item.is-active .role-nav__count {
+  background: var(--primary-line);
+  color: #fff;
+}
+
+/* Avatar besar dengan foto profil */
+.avatar--xl { width: 68px; height: 68px; font-size: 1.3rem; border-radius: var(--r-md); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.profile-head { gap: 14px; align-items: center; }
+
+/* ==========================================================================
+   Struktur sekolah (detail organisasi)
+   ========================================================================== */
+.level-block { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.level-block:last-child { border-bottom: 0; padding-bottom: 0; }
+.level-block:first-child { padding-top: 0; }
+.level-block__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.level-block__program { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 6px; }
+.level-block__program b { font-size: .84rem; font-weight: 800; }
+
+.class-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.class-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  font-size: .78rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.class-chip:hover { border-color: var(--primary-line); background: var(--primary-soft); color: var(--text); }
+.class-chip b { font-weight: 800; }
+.class-chip span { font-size: .7rem; color: var(--dim); font-variant-numeric: tabular-nums; }

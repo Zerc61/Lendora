@@ -15,7 +15,7 @@ use Tests\TestCase;
  *
  * Menjamin: tiap peran memakai shell yang berbeda, dan setiap item menu
  * milik peran tersebut benar-benar bisa dibuka (tidak ada link mati atau
- * view yang gagal render).
+ * view yang gagal render
  */
 class ShellTest extends TestCase
 {

@@ -23,9 +23,12 @@
             <thead>
                 <tr>
                     <th scope="col">Organisasi</th>
-                    <th scope="col">Kode</th>
-                    <th scope="col">Status</th>
+                    <th scope="col" class="hide-sm">Kode</th>
+                    <th scope="col" class="hide-sm">Status</th>
                     <th scope="col" class="num">Pengguna</th>
+                    <th scope="col" class="num hide-sm">Jurusan</th>
+                    <th scope="col" class="num hide-sm">Kelas</th>
+                    <th scope="col" class="num hide-sm">Ruang</th>
                     <th scope="col" class="col-actions"><span class="hide-sm">Aksi</span></th>
                 </tr>
             </thead>
@@ -41,8 +44,8 @@
                                 </div>
                             </div>
                         </td>
-                        <td><span class="table__code">{{ $org->code }}</span></td>
-                        <td><x-status :status="$org->status" /></td>
+                        <td class="hide-sm"><span class="table__code">{{ $org->code }}</span></td>
+                        <td class="hide-sm"><x-status :status="$org->status" /></td>
                         <td class="num tnum">
                             @if ($org->users_count > 0)
                                 <span class="badge tone-accent">{{ number_format($org->users_count, 0, ',', '.') }}</span>
@@ -50,8 +53,15 @@
                                 <span class="dim">0</span>
                             @endif
                         </td>
+                        <td class="num tnum hide-sm">{{ $org->programs_count ?: '—' }}</td>
+                        <td class="num tnum hide-sm">{{ $org->school_classes_count ?: '—' }}</td>
+                        <td class="num tnum hide-sm">{{ $org->classrooms_count ?: '—' }}</td>
                         <td class="col-actions">
                             <div class="btn-row btn-row--end">
+                                <x-btn :href="route('admin.organizations.show', $org)" size="sm" variant="ghost" icon="eye" class="btn--icon"
+                                       title="Detail {{ $org->name }}" aria-label="Detail {{ $org->name }}" />
+                                <x-btn :href="route('admin.users.index', ['organization_id' => $org->id])" size="sm" variant="ghost" icon="users" class="btn--icon"
+                                       title="Pengguna {{ $org->name }}" aria-label="Pengguna {{ $org->name }}" />
                                 <x-btn :href="route('admin.organizations.edit', $org)" size="sm" variant="ghost" icon="edit" class="btn--icon"
                                        title="Edit {{ $org->name }}" aria-label="Edit {{ $org->name }}" />
                                 @can('delete', $org)
@@ -70,7 +80,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="8">
                             <x-empty icon="building" title="Belum ada organisasi"
                                      text="Satu organisasi sudah cukup untuk memulai; tambahkan bila ada unit kerja lain.">
                                 @can('create', \App\Models\Organization::class)

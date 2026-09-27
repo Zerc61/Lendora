@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -15,7 +18,9 @@ class User extends Authenticatable
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     protected $fillable = [
-        'organization_id', 'name', 'email', 'password', 'status', 'notification_preferences',
+        'organization_id', 'school_class_id', 'name', 'email', 'password', 'status',
+        'notification_preferences', 'photo_path', 'identity_number', 'birth_date',
+        'gender', 'phone', 'address', 'bio',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -27,12 +32,36 @@ class User extends Authenticatable
             'password' => 'hashed',
             'status' => UserStatus::class,
             'notification_preferences' => 'array',
+            'birth_date' => 'date',
+            'gender' => Gender::class,
         ];
     }
 
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function schoolClass(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class);
+    }
+
+    /** Transaksi peminjaman milik pengguna ini (sebagai peminjam). */
+    public function borrowings(): HasMany
+    {
+        return $this->hasMany(Borrowing::class, 'borrower_id');
+    }
+
+    /** Pengajuan reservasi milik pengguna ini. */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->school_class_id !== null;
     }
 
     public function isActive(): bool
@@ -82,5 +111,16 @@ class User extends Authenticatable
         }
 
         return $letters;
+    }
+
+    /** URL foto profil, atau null bila belum diunggah. */
+    public function photoUrl(): ?string
+    {
+        return $this->photo_path ? Storage::url($this->photo_path) : null;
+    }
+
+    public function hasPhoto(): bool
+    {
+        return filled($this->photo_path) && Storage::disk('public')->exists($this->photo_path);
     }
 }

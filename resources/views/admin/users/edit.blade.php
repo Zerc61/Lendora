@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('admin.users.update', $user) }}" class="card">
+    <form method="POST" action="{{ route('admin.users.update', $user) }}" class="card" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -44,6 +44,79 @@
                                 <option value="{{ $id }}" @selected((string) old('organization_id', $user->organization_id) === (string) $id)>{{ $orgName }}</option>
                             @endforeach
                         </select>
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="divider--label">Data Siswa</div>
+            <p class="tiny dim" style="margin-top:-8px">
+                Berisi bila akun berperan <b>borrower</b> (siswa).
+            </p>
+            <div class="form-grid">
+                <x-field name="school_class_id" label="Kelas">
+                    <x-slot:control>
+                        <select name="school_class_id" data-cascade="school">
+                            <option value="">— bukan siswa —</option>
+                            @foreach ($schoolClasses as $class)
+                                <option value="{{ $class->id }}"
+                                        @selected((string) old('school_class_id', $user->school_class_id) === (string) $class->id)>
+                                    {{ $class->program->education_level->label() }} · {{ $class->program->name }} — {{ $class->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="identity_number" label="NIS / NISN">
+                    <x-slot:control>
+                        <input name="identity_number" value="{{ old('identity_number', $user->identity_number) }}"
+                               maxlength="40" placeholder="mis. SMK-1234-0001">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="gender" label="Jenis Kelamin">
+                    <x-slot:control>
+                        <select name="gender">
+                            <option value="">—</option>
+                            @foreach (\App\Enums\Gender::cases() as $g)
+                                <option value="{{ $g->value }}" @selected(old('gender', $user->gender?->value) === $g->value)>
+                                    {{ $g->label() }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="birth_date" label="Tanggal Lahir">
+                    <x-slot:control>
+                        <input type="date" name="birth_date" value="{{ old('birth_date', $user->birth_date?->format('Y-m-d')) }}">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="phone" label="Telepon">
+                    <x-slot:control>
+                        <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" maxlength="25">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="photo" label="Foto Profil" hint="JPG/PNG/WebP, maks 2 MB. Kosongkan bila tidak ingin mengganti.">
+                    <x-slot:control>
+                        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="input"
+                               style="padding:7px 10px;height:auto">
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="form-grid">
+                <x-field name="address" label="Alamat">
+                    <x-slot:control>
+                        <input name="address" value="{{ old('address', $user->address) }}" maxlength="255">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="bio" label="Deskripsi">
+                    <x-slot:control>
+                        <textarea name="bio" rows="2" maxlength="500">{{ old('bio', $user->bio) }}</textarea>
                     </x-slot:control>
                 </x-field>
             </div>

@@ -1,28 +1,106 @@
 <?php
-// app/Http/Controllers/Admin/UserController.php
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\EducationLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Organization;
+use App\Models\Program;
+use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Manajemen pengguna.
+ *
+ * Halaman daftar dibagi per peran (tab navbar): Semua, Admin, Staff, Teknisi,
+ * Borrower. Untuk borrower tersedia filter bertingkat
+ * sekolah → jenjang → jurusan → kelas.
+ */
 class UserController extends Controller
 {
+    /** Peran yang punya tab tersendiri di navbar. */
+    public const ROLE_TABS = ['super-admin', 'admin', 'staff', 'technician', 'borrower'];
+
     public function __construct()
     {
         $this->authorizeResource(User::class, 'user');
     }
 
-    public function index()
+    public function index(Request $request, ?string $role = null)
     {
-        $users = User::with(['roles', 'organization'])->latest()->paginate(10);
+        // Tab peran di navbar; nilai tak dikenal → semua.
+        $activeRole = in_array($role, self::ROLE_TABS, true) ? $role : null;
 
-        return view('admin.users.index', compact('users'));
+        $users = User::with([
+            'roles',
+            'organization',
+            'schoolClass.program',
+        ])
+            ->when($activeRole, fn ($q) => $q->role($activeRole))
+            ->when($request->filled('organization_id'), fn ($q) => $q->where('organization_id', $request->integer('organization_id')))
+            ->when($request->filled('level'), fn ($q) => $q->whereHas(
+                'schoolClass.program',
+                fn ($p) => $p->where('education_level', $request->string('level'))
+            ))
+            ->when($request->filled('program_id'), fn ($q) => $q->whereHas(
+                'schoolClass',
+                fn ($c) => $c->where('program_id', $request->integer('program_id'))
+            ))
+            ->when($request->filled('school_class_id'), fn ($q) => $q->where('school_class_id', $request->integer('school_class_id')))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $sub->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('identity_number', 'like', $term);
+            }))
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.users.index', [
+            'users' => $users,
+            'activeRole' => $activeRole,
+            'organizations' => Organization::orderBy('name')->pluck('name', 'id'),
+            'programs' => Program::orderBy('name')->get(['id', 'name', 'education_level', 'organization_id']),
+            'schoolClasses' => SchoolClass::with('program')->orderBy('name')->get(['id', 'name', 'program_id']),
+            'levelCounts' => $this->roleCounts(),
+        ]);
+    }
+
+    /** Jumlah pengguna per peran untuk badge di navbar. */
+    private function roleCounts(): array
+    {
+        // Satu query: hitung per role lewat pivot, bukan 5 query terpisah.
+        $tallies = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->join('users', 'users.id', '=', 'model_has_roles.model_id')
+            ->whereNull('users.deleted_at')
+            ->where('model_has_roles.model_type', User::class)
+            ->whereIn('roles.name', self::ROLE_TABS)
+            ->groupBy('roles.name')
+            ->pluck(DB::raw('count(*)'), 'roles.name');
+
+        $out = [];
+        foreach (self::ROLE_TABS as $role) {
+            $out[$role] = (int) ($tallies[$role] ?? 0);
+        }
+
+        return $out;
+    }
+
+    /** Detail siswa: foto, identitas, kelas, dan transaksinya. */
+    public function show(User $user)
+    {
+        $user->load(['roles', 'organization', 'schoolClass.program', 'borrowings', 'reservations']);
+
+        return view('admin.users.show', ['user' => $user]);
     }
 
     public function create()
@@ -32,10 +110,15 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        $data = collect($request->validated())->except('role')->all();
+        // `photo` bukan kolom DB — jangan ikut tersalin ke mass-assignment.
+        $data = collect($request->validated())->except(['role', 'photo'])->all();
 
         $user = User::create($data); // password auto-hash via cast 'hashed'
         $user->assignRole($request->validated('role'));
+
+        if ($request->hasFile('photo')) {
+            $user->update(['photo_path' => $request->file('photo')->store('avatars', 'public')]);
+        }
 
         return redirect()
             ->route('admin.users.index')
@@ -50,7 +133,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         $data = collect($request->validated())
-            ->except(['role', 'email_notifications'])
+            ->except(['role', 'email_notifications', 'photo'])
             ->all();
 
         if (empty($data['password'])) {
@@ -64,6 +147,10 @@ class UserController extends Controller
 
         $user->update($data);
         $user->syncRoles($request->validated('role'));
+
+        if ($request->hasFile('photo')) {
+            $this->replacePhoto($user, $request);
+        }
 
         return redirect()
             ->route('admin.users.index')
@@ -79,11 +166,28 @@ class UserController extends Controller
             ->with('success', 'Pengguna dihapus (soft delete).');
     }
 
+    private function replacePhoto(User $user, Request $request): void
+    {
+        if ($user->photo_path) {
+            Storage::disk('public')->delete($user->photo_path);
+        }
+
+        $user->update([
+            'photo_path' => $request->file('photo')->store('avatars', 'public'),
+        ]);
+    }
+
     private function formOptions(): array
     {
         return [
             'roles' => Role::orderBy('name')->pluck('name'),
             'organizations' => Organization::orderBy('name')->pluck('name', 'id'),
+            'programs' => Program::orderBy('name')->get(['id', 'name', 'education_level', 'organization_id']),
+            // `organization_id` TIDAK ada di school_classes — organisasi hanya
+            // bisa dicapai lewat program. Jangan	select kolom itu.
+            'schoolClasses' => SchoolClass::with('program')
+                ->orderBy('name')
+                ->get(['id', 'name', 'program_id']),
         ];
     }
 }

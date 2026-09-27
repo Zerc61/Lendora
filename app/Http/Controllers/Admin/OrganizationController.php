@@ -19,7 +19,9 @@ class OrganizationController extends Controller
 
     public function index()
     {
-        $organizations = Organization::withCount('users')->latest()->paginate(10);
+        $organizations = Organization::withCount(['users', 'programs', 'schoolClasses', 'classrooms'])
+            ->latest()
+            ->paginate(10);
 
         return view('admin.organizations.index', compact('organizations'));
     }
@@ -36,6 +38,19 @@ class OrganizationController extends Controller
         return redirect()
             ->route('admin.organizations.index')
             ->with('success', "Organisasi {$organization->name} berhasil dibuat.");
+    }
+
+    /** Detail: struktur sekolah (jenjang → jurusan → kelas) + ruang kelas. */
+    public function show(Organization $organization)
+    {
+        // schoolSummary() sudah menghitung students_count sendiri, jadi eager
+        // load di sini cukup untuk classroom saja.
+        $organization->load(['classrooms']);
+
+        return view('admin.organizations.show', [
+            'organization' => $organization,
+            'summary' => $organization->schoolSummary(),
+        ]);
     }
 
     public function edit(Organization $organization)

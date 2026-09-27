@@ -1,50 +1,48 @@
-{{-- resources/views/auth/login.blade.php — Formulir masuk ke Lendora --}}
+{{-- resources/views/auth/login.blade.php — Formulir masuk ke Lendora
+     Satu kartu tunggal: di phone brand & form menyatu agar tidak perlu
+     menggulir melewati dua kartu besar. --}}
 @extends('layouts.auth')
 @section('title', 'Masuk')
 
 @section('content')
-<div class="card" style="text-align:center">
-    <div class="btn-row" style="justify-content:center;margin-bottom:14px">
-        <x-logo :size="40" />
-    </div>
-    <p class="eyebrow">Manage. Reserve. Maintain.</p>
-    <h1 style="margin-top:6px">Masuk ke Lendora</h1>
-    <p class="small muted" style="margin-top:6px">Gunakan email dan password yang terdaftar di sistem peminjaman aset.</p>
-</div>
+<div class="auth-card">
 
-<form method="POST" action="{{ route('login.attempt') }}" class="card">
-    @csrf
+    <header class="auth-card__head">
+        <x-logo :size="40" class="auth-card__logo" />
+        <h1 class="auth-card__title">Masuk ke Lendora</h1>
+        <p class="auth-card__sub">Gunakan email dan password terdaftar.</p>
+    </header>
 
-    <div class="form">
-        <x-field name="email" label="Email" required>
-            <x-slot:control>
-                <input type="email" id="f-email" name="email" value="{{ old('email') }}"
-                       placeholder="nama@organisasi.test" required autofocus autocomplete="username"
-                       @error('email') aria-invalid="true" @enderror>
-            </x-slot:control>
-        </x-field>
+    <form method="POST" action="{{ route('login.attempt') }}" class="auth-form">
+        @csrf
 
-        <x-field name="password" label="Password" required>
-            <x-slot:control>
-                <input type="password" id="f-password" name="password" required autocomplete="current-password">
-            </x-slot:control>
-        </x-field>
+        <div class="field">
+            <label for="f-email">Email <span class="req">*</span></label>
+            <input type="email" id="f-email" name="email" value="{{ old('email') }}"
+                   placeholder="nama@organisasi.test" required autofocus autocomplete="username"
+                   @error('email') aria-invalid="true" @enderror>
+            @error('email')<p class="field__error">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="field">
+            <label for="f-password">Password <span class="req">*</span></label>
+            <input type="password" id="f-password" name="password" required autocomplete="current-password">
+            @error('password')<p class="field__error">{{ $message }}</p>@enderror
+        </div>
 
         <label class="check" for="remember">
             <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
             <span>
                 Ingat saya
-                <small>Jangan centang di perangkat bersama. Sesi akan bertahan setelah browser ditutup.</small>
+                <small class="hide-xs">Jangan centang di perangkat bersama.</small>
             </span>
         </label>
 
         <button type="submit" class="btn btn--primary btn--lg btn--block">
             <x-icon name="logout" /> Masuk
         </button>
-    </div>
-</form>
+    </form>
 
-<p class="tiny dim" style="text-align:center;margin-top:14px">
-    &copy; {{ date('Y') }} Lendora · Sistem Peminjaman Aset
-</p>
+    <p class="auth-card__legal">&copy; {{ date('Y') }} Lendora · Sistem Peminjaman Aset</p>
+</div>
 @endsection

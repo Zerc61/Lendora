@@ -79,7 +79,11 @@ sehingga `<x-status>` selalu konsisten:
 `AssetStatus` · `AssetCondition` (+`score()` 0–100 untuk health score) ·
 `BorrowingStatus` · `ReservationStatus` · `IssueStatus` · `IssueType` · `IssueSeverity` ·
 `MaintenanceStatus` · `MaintenanceType` · `MaintenancePriority` · `AttachmentType` ·
-`UserStatus` · `OrganizationStatus`
+`UserStatus` · `OrganizationStatus` · `EducationLevel` · `Gender`
+
+> **Tanggal:** locale aplikasi masih `en`, jadi `translatedFormat()` **tanpa**
+> `->locale('id')` akan menghasilkan bulan Inggris ("06 May 2010"). Selalu pakai
+> `->locale('id')->translatedFormat('d M Y')` agar konsisten Bahasa Indonesia.
 
 Tone yang tersedia: `ok`, `info`, `brand`, `accent`, `warn`, `bad`, `orange`, `muted`.
 
@@ -141,3 +145,38 @@ otomatis lewat `request()->routeIs($item['match'])`.
 php artisan view:clear && php artisan view:cache   # deteksi error sintaks Blade
 php artisan test
 ```
+
+---
+
+## 9. Struktur Sekolah
+
+Halaman pengguna & organisasi membawa hierarki sekolah. Semua belongs-to
+`organizations`, jadi data antar sekolah tidak pernah bercampur.
+
+```
+Organization
+ ├── Program        (jurusan/peminatan)  →  education_level + name
+ │    └── SchoolClass (kelas/rombelan)  →  SchoolClass.user_id
+ └── Classroom      (ruang kelas)
+```
+
+| Tabel | Isi |
+|---|---|
+| `programs` | jurusan per jenjang: SMA→IPA/IPS, SMK→RPL/TKJ/TKR/TBS/TAS/AKL, MA→IPS/IIM |
+| `school_classes` | rombongan belajar, punya `school_year` + `capacity` + wali kelas |
+| `classrooms` | ruang kelas + kapasitas |
+
+`users` kolom tambahan: `school_class_id`, `photo_path`, `identity_number` (NIS/NISN),
+`birth_date`, `gender`, `phone`, `address`, `bio`.
+
+**Filter bertingkat di `/admin/users`:** navbar per peran (Semua · Admin · Staff ·
+Teknisi · Borrower) lalu sekolah → jenjang → jurusan → kelas. Opsi tiap dropdown
+disaring mengikuti filter di atasnya, jadi memilih SMA tidak menampilkan IPA/IPS/SMK.
+
+**Foto profil:** simpan di `storage/app/public/avatars`, diakses lewat
+`User::photoUrl()` / `User::hasPhoto()`. Batas 2 MB, hanya JPG/PNG/WebP. File lama
+**wajib dihapus** saat diganti agar storage tidak menumpuk file yatim — sudah
+dikunci test `SchoolStructureTest`.
+
+**Seeder:** `SchoolStructureSeeder` (idempotent) membuat 2 organisasi, 5 jenjang,
+13 program, 25 kelas × 25 siswa, dan 6 ruang kelas untuk SMK Nusantara.

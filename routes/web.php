@@ -50,6 +50,8 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // ── Profil (bag. 8: Profile) ──
     Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+    Route::put('profile/identity', [ProfileController::class, 'updateIdentity'])->name('profile.identity');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('profile/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.preferences');
 
@@ -78,6 +80,10 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::middleware('permission:organization.manage')->resource('organizations', OrganizationController::class);
         Route::middleware('permission:user.manage')->resource('users', UserController::class);
+        // Tab per peran di navbar: /admin/users/role/staff, /admin/users/role/borrower, …
+        Route::get('users/role/{role}', [UserController::class, 'index'])
+            ->whereIn('role', UserController::ROLE_TABS)
+            ->name('users.byRole');
 
         Route::middleware('permission:category.manage')->resource('categories', CategoryController::class);
         Route::middleware('permission:location.manage')->resource('locations', LocationController::class);

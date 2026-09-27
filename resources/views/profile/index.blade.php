@@ -9,9 +9,50 @@
 
 <div class="grid grid--main">
     <div class="stack" style="--gap:18px">
+        {{-- Foto profil --}}
+        <x-card title="Foto Profil" icon="camera" subtitle="JPG, PNG, atau WebP — maksimal 2 MB." :delay="0">
+            <div class="cell-media profile-head" style="margin-bottom:16px">
+                <span class="avatar avatar--xl {{ $user->hasPhoto() ? '' : 'avatar--plain' }}">
+                    @if ($user->hasPhoto())
+                        <img src="{{ $user->photoUrl() }}" alt="Foto {{ $user->name }}">
+                    @else
+                        {{ $user->initials() }}
+                    @endif
+                </span>
+                <div class="cell-media__body">
+                    <b>{{ $user->name }}</b>
+                    <span>{{ $user->hasPhoto() ? 'Foto tersimpan. Unggah yang baru untuk mengganti.' : 'Belum ada foto — sistem memakai inisial.' }}</span>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="stack" style="--gap:12px">
+                @csrf
+                @method('PUT')
+
+                <div class="field">
+                    <label for="f-photo">Pilih gambar</label>
+                    <input type="file" id="f-photo" name="photo" accept="image/jpeg,image/png,image/webp"
+                           class="input" style="padding:7px 10px;height:auto">
+                    @error('photo')<p class="field__error">{{ $message }}</p>@enderror
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn btn--primary btn--sm">
+                        <x-icon name="camera" /> Unggah Foto
+                    </button>
+                    @if ($user->hasPhoto())
+                        <button type="submit" name="remove_photo" value="1" class="btn btn--ghost btn--sm"
+                                formnovalidate>
+                            <x-icon name="trash" /> Hapus Foto
+                        </button>
+                    @endif
+                </div>
+            </form>
+        </x-card>
+
         {{-- Data akun (read-only) --}}
         <x-card title="Data Akun" subtitle="Data ini dikelola admin, hubungi administrator bila perlu diperbarui."
-                icon="user" :delay="0">
+                icon="user" :delay="60">
             <x-slot:actions>
                 <span class="badge tone-brand">{{ $user->roleLabel() }}</span>
             </x-slot:actions>
@@ -23,7 +64,6 @@
                     <span>{{ $user->email }}</span>
                 </span>
             </div>
-
             <dl class="kv">
                 <div class="kv__row">
                     <dt>Nama lengkap</dt>
@@ -83,6 +123,39 @@
 
     {{-- Keamanan --}}
     <div class="stack" style="--gap:18px">
+        {{-- Data kontak — bisa diubah sendiri --}}
+        <x-card title="Kontak & Deskripsi" icon="edit" subtitle="Nomor telepon, alamat, dan catatan singkat." :delay="0">
+            <form method="POST" action="{{ route('profile.identity') }}" class="form">
+                @csrf
+                @method('PUT')
+
+                <x-field name="phone" label="Telepon">
+                    <x-slot:control>
+                        <input type="tel" id="f-phone" name="phone" value="{{ old('phone', $user->phone) }}"
+                               placeholder="08xxxxxxxxxx" autocomplete="tel">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="address" label="Alamat">
+                    <x-slot:control>
+                        <input type="text" id="f-address" name="address" value="{{ old('address', $user->address) }}"
+                               placeholder="Jl. Merdeka No 1, Kota">
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="bio" label="Deskripsi" hint="Maksimal 500 karakter.">
+                    <x-slot:control>
+                        <textarea id="f-bio" name="bio" rows="3"
+                                  placeholder="Ceritakan singkat tentang diri Anda.">{{ old('bio', $user->bio) }}</textarea>
+                    </x-slot:control>
+                </x-field>
+
+                <button type="submit" class="btn btn--primary btn--sm btn--block">
+                    <x-icon name="check" /> Simpan Data
+                </button>
+            </form>
+        </x-card>
+
         <div class="sticky-panel">
             <x-card title="Ganti Password" icon="shield" tint>
                 <x-slot:actions>
