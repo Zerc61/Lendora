@@ -1008,9 +1008,17 @@ input[type=file]::file-selector-button {
 .meter--bad .meter__fill { background: linear-gradient(90deg, #F87171, #EF4444); }
 .meter--accent .meter__fill { background: linear-gradient(90deg, #22D3EE, #0891B2); }
 
-.bar-row { display: grid; grid-template-columns: minmax(96px, 26%) 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
+/* Track label 72px (bukan 96px): minimum bar-row jadi 130px, sehingga muat di
+   kolom sempit. Label panjang tetap terpotong ellipsis, bukan memaksa overflow. */
+.bar-row { display: grid; grid-template-columns: minmax(72px, 26%) 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
 .bar-row__label { font-size: .78rem; font-weight: 700; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-row__value { font-size: .78rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+
+/* Baris donut + ringkasan. Donut 148px flex:none; bila sisa ruang < 190px
+   (mis. kolom kanan 268px di 1024px) ringkasan turun ke baris sendiri dengan
+   lebar penuh — bukan dihimpit jadi 66px lalu memaksa .bar-row meluber. */
+.health-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.health-row__stats { flex: 1 1 190px; }
 
 /* trend bars (column chart) */
 .spark { display: flex; align-items: flex-end; gap: 10px; height: 132px; padding-top: 10px; }
@@ -1235,7 +1243,9 @@ input[type=file]::file-selector-button {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 71;
-  width: min(288px, 84vw);
+  /* 88vw: di 400px → 352px. Width lama 288px hanya 72% layar sehingga sisanya
+     berupa scrim kosong yang terbaca seperti UI rusak. */
+  width: min(352px, 88vw);
   background: #0D1119;
   border-right: 1px solid var(--border-2);
   box-shadow: var(--shadow-3);
@@ -1245,6 +1255,13 @@ input[type=file]::file-selector-button {
   flex-direction: column;
 }
 .mobile-rail.is-open { transform: none; }
+
+/* Drawer = navigasi, bukan brand showcase. Tagline "Manage. Reserve. Maintain."
+   pecah dua baris pada ruang sempit lalu langsung menyambung group label
+   ("MENU") sehingga kepala drawer terlihat kotor. Di desktop rail tagline
+   masih tampil; di drawer cukup logo + nama. */
+.mobile-rail .rail__wordmark span { display: none; }
+.mobile-rail .rail__wordmark b { white-space: nowrap; }
 
 /* bottom nav (borrower / technician on phone) */
 .bottomnav {
@@ -1798,6 +1815,7 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 
 .appbar__body {
   display: flex; flex-direction: column;
+  flex: 1;                 /* nama mengisi ruang, avatar terdorong ke tepi kanan */
   min-width: 0; line-height: 1.2;
 }
 .appbar__body b {
@@ -1834,14 +1852,25 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
 
 .appbar__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* ---------- Konten: max-width = kunci kerapian desktop ---------- */
-.app__body {
+/* ---------- Konten: max-width = kunci kerapian desktop ----------
+   Hanya shell borrower. Rule global akan menyempitkan shell admin yang
+   butuh lebar penuh (grafik + insight) dan memicu overflow horizontal. */
+.shell--borrower .app__body {
   width: 100%;
   max-width: 1200px;
   margin-inline: auto;
   padding: clamp(16px, 2.5vw, 28px) clamp(14px, 3vw, 28px) 110px;
 }
-@media (min-width: 1024px) { .app__body { padding-bottom: 48px; } }
+@media (min-width: 1024px) { .shell--borrower .app__body { padding-bottom: 48px; } }
+
+/* Tablet 768–1023px: rail disembunyikan DAN navbar desktop `only-desktop`
+   ikut hilang — tanpa ini peminjam kehilangan seluruh navigasi kecuali burger,
+   sedangkan FAB melayang 78px di atas layar tanpa bottom nav. Di rentang ini
+   bottom nav yang menjadi navigasi utama (pola app, bukan desktop). */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .shell--borrower .bottomnav { display: flex; }
+  .shell--borrower .fab { display: grid; }
+}
 
 /* ---------- FAB (mobile only, duduk DI ATAS bottom nav) ---------- */
 .fab {

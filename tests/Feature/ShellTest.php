@@ -161,6 +161,22 @@ class ShellTest extends TestCase
             $css,
             'Anak grid butuh min-width: 0 agar kolom bisa menyusut.'
         );
+
+        // Drawer mobile 288px hanya menutup 72% layar 400px sehingga sisanya
+        // berupa scrim kosong yang terbaca seperti UI rusak.
+        $this->assertMatchesRegularExpression(
+            '/\.mobile-rail\s*\{[^}]*width:\s*min\(\s*3\d\dpx\s*,\s*8\dvw\s*\)/',
+            $css,
+            'Drawer harus ≥ ~350px / 88vw — bukan 288px.'
+        );
+
+        // Tagline brand pecah dua baris di ruang sempit lalu menyambung group
+        // label, sehingga kepala drawer terlihat kotor.
+        $this->assertMatchesRegularExpression(
+            '/\.mobile-rail\s+\.rail__wordmark\s+span\s*\{[^}]*display:\s*none/',
+            $css,
+            'Tagline brand harus disembunyikan di dalam drawer.'
+        );
     }
 
     public function test_teknisi_mempunyai_rail_section_dan_strip_status(): void

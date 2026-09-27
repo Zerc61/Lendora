@@ -90,7 +90,7 @@
     {{-- Kolom kanan: kesehatan + antrean + aktivitas --}}
     <div class="stack" style="--gap:18px">
         <x-card title="Kesehatan Aset" icon="shield" tint :delay="0">
-            <div style="display:flex;align-items:center;gap:18px">
+            <div class="health-row">
                 <div class="donut">
                     <svg viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="42" stroke="var(--surface-3)"></circle>
@@ -107,7 +107,7 @@
                         <span>Skor</span>
                     </span>
                 </div>
-                <div class="stack" style="--gap:9px;flex:1;min-width:0">
+                <div class="stack health-row__stats">
                     <div>
                         <div class="tiny dim">Rata-rata kondisi</div>
                         <b class="tnum">{{ $averageCondition }}<span class="dim" style="font-size:.8rem">/100</span></b>
