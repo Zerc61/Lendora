@@ -42,18 +42,33 @@ class AppServiceProvider extends ServiceProvider
         //      halaman tampil tanpa gaya sama sekali;
         //   2. <form action="http://…"> memicu peringatan "formulir tidak aman".
         //
-        // Acuannya scheme dari APP_URL, karena itu satu-satunya nilai yang
-        // pasti benar dan wajib diisi di produksi.
+        // Tiga sumber, berurutan dari paling tegas:
         //
-        // Hanya `forceScheme` — JANGAN set app.asset_url di sini. forceScheme
-        // sudah cukup untuk `asset()`: UrlGenerator::formatRoot() menukar
-        // skema pada $request->root() sambil mempertahankan host-nya, jadi
-        // preview deployment tetap memakai host-nya sendiri. Memaksa
+        //   1. APP_URL diawali https://  → konfigurasi eksplisit, andalkan ini.
+        //   2. X-Forwarded-Proto: https  → sinyal yang selalu dikirim Vercel /
+        //      Nginx / Cloudflare untuk request yang aslinanya TLS. Dipakai
+        //      supaya halaman tidak rusak hanya karena satu env var lupa diisi.
+        //   3. Selain itu tidak dipaksa, agar pengembangan lokal lewat
+        //      http://localhost tetap normal.
+        //
+        // Kenapa (2) aman: header ini HANYA menaikkan http → https, tidak
+        // pernah menurunkan. Header yang dipalsukan hanya bisa membuat
+        // halaman rusak (browser mengarang https ke server yang http) — tidak
+        // mungkin membuat kredensial terkirim tanpa enkripsi.
+        //
+        // Catatan: JANGAN set app.asset_url di sini. forceScheme sudah cukup
+        // untuk `asset()` — UrlGenerator::formatRoot() menukar skema pada
+        // $request->root() sambil mempertahankan host-nya, jadi preview
+        // deployment tetap memakai host-nya sendiri. Memaksa
         // app.asset_url = APP_URL justru membuat aset preview menunjuk ke
         // domain produksi.
         $appUrl = (string) config('app.url');
+        $forwarded = strtolower((string) $this->app->make('request')->header('X-Forwarded-Proto'));
 
-        if (strtolower((string) parse_url($appUrl, PHP_URL_SCHEME)) === 'https') {
+        $isHttps = strtolower((string) parse_url($appUrl, PHP_URL_SCHEME)) === 'https'
+            || $forwarded === 'https';
+
+        if ($isHttps) {
             URL::forceScheme('https');
         }
 
