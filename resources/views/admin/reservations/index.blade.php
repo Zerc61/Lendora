@@ -78,9 +78,8 @@
                                 <form class="btn-row" method="POST" action="{{ route('admin.reservations.reject', $r) }}"
                                       data-confirm="Tolak reservasi {{ $r->code }}? Pemohon akan menerima alasan ini.">
                                     @csrf
-                                    <input class="input" name="reason" required placeholder="Alasan penolakan"
-                                           aria-label="Alasan penolakan {{ $r->code }}"
-                                           style="width:132px;min-height:31px;height:31px;padding:0 9px;font-size:.76rem">
+                                    <input class="input input--sm" name="reason" required placeholder="Alasan penolakan"
+                                           aria-label="Alasan penolakan {{ $r->code }}">
                                     <button type="submit" class="btn btn--danger btn--sm"><x-icon name="x" /> Tolak</button>
                                 </form>
                             @endif

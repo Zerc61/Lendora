@@ -101,7 +101,7 @@ body {
 }
 
 h1, h2, h3, h4, h5 { margin: 0; font-weight: 800; letter-spacing: -.015em; line-height: 1.2; }
-h1 { font-size: 1.5rem; }
+h1 { font-size: 1.25rem; letter-spacing: -.025em; line-height: 1.2; }
 h2 { font-size: 1.15rem; }
 h3 { font-size: 1rem; }
 p { margin: 0; }
@@ -574,7 +574,7 @@ a.stat:hover { transform: translateY(-2px); border-color: var(--border-3); color
   color: var(--dim);
 }
 .stat__value {
-  font-size: 1.85rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.1;
@@ -814,6 +814,7 @@ textarea, .textarea { min-height: 84px; resize: vertical; line-height: 1.55; }
   box-shadow: var(--ring);
 }
 .input::placeholder, textarea::placeholder, input::placeholder { color: var(--dim); }
+.input--sm { min-height: 31px; height: 31px; padding: 0 9px; font-size: .76rem; }
 input[type=date], input[type=datetime-local], input[type=time] { min-height: 40px; }
 input[type=color] { padding: 3px; }
 select {
@@ -1619,7 +1620,7 @@ a.workchip:hover { color: #fff; border-color: var(--primary-line); background: v
   background: radial-gradient(circle, rgba(124, 92, 252, .34), transparent 66%);
   pointer-events: none;
 }
-.hero h2 { font-size: 1.32rem; letter-spacing: -.02em; }
+.hero h2 { font-size: 1.15rem; letter-spacing: -.02em; }
 .hero p { color: var(--text-2); font-size: .84rem; max-width: 56ch; margin-top: 6px; }
 .hero__actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
 
@@ -1676,7 +1677,7 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .ops-strip { display: none; }
   .workbar { padding: 9px 14px; }
   .hero { padding: 18px; }
-  .hero h2 { font-size: 1.15rem; }
+  .hero h2 { font-size: 1.05rem; }
 }
 
 /* ── 25. Print ─────────────────────────────────────────────────────────── */
@@ -1746,6 +1747,7 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .page-head__actions { width: 100%; }
   .table { font-size: .78rem; }
   .table th, .table td { padding: 9px 10px; }
+  .table th { font-size: .66rem; letter-spacing: .1em; }
   .hide-sm { display: none !important; }
   .btn { height: 36px; }
   .btn--lg { height: 44px; }
