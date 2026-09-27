@@ -1,0 +1,125 @@
+# syntax=docker/dockerfile:1
+#
+# Lendora — image container untuk Vercel.
+#
+# Mengikuti pola resmi Vercel untuk Laravel + FrankenPHP, dengan penyesuaian:
+#
+#   TIDAK ADA stage frontend. Proyek ini sengaja tanpa build step — seluruh UI
+#   adalah CSS/JS tulis-tangan yang dilayani langsung dari public/assets/
+#   (public/assets/lendora.css & lendora.js, dimuat di partials/head.blade.php).
+#   Tidak ada view memakai @vite dan package-lock.json juga tidak ada, jadi
+#   `npm ci` pasti gagal di build.
+#
+# Yang TIDAK boleh ada di sini:
+#   - COPY .env*            → kredensial masuk image & GitHub
+#   - php artisan migrate   → beberapa instance bisa start bersamaan; migration
+#                             dijalankan terpisah (docs/deployment.md §10.3)
+#   - php artisan config:cache → mengunci env build-time ke dalam image, padahal
+#                             Vercel menyuntikkan env saat runtime
+
+# ============================================================
+# Base — runtime + toolchain
+# ============================================================
+FROM dunglas/frankenphp:1-php8.4-bookworm AS base
+
+# php.ini-production: memory_limit & error reporting sesuai produksi.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && install-php-extensions \
+        pdo_mysql \
+        intl \
+        gd \
+        exif \
+        bcmath \
+        opcache \
+        zip
+
+WORKDIR /app
+
+# ============================================================
+# Dependencies — composer memakai PHP & extension yang sama seperti runtime
+# ============================================================
+FROM base AS dependencies
+
+# Composer ikut di image ini (bukan stage terpisah) supaya install berjalan di
+# atas PHP 8.4 + pdo_mysql + intl yang sama persis dengan runtime. Kalau memakai
+# image composer:2, versi PHP-nya bisa berbeda sehingga pemeriksaan platform
+# composer bisa gagal, padahal kebutuhan sistemnya sebenarnya sudah terpenuhi.
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Manifest lebih dulu supaya layer dependency tidak ter-invalidasi tiap kali
+# source aplikasi berubah.
+COPY composer.json composer.lock ./
+
+# --no-scripts: lewati @php artisan package:discover. Ia butuh aplikasi utuh,
+# jadi dijalankan ulang di bawah setelah source disalin.
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader \
+    --prefer-dist
+
+COPY . .
+
+# composer dump-autoload memicu post-autoload-dump, yaitu package:discover —
+# inilah yang membuat stage ini tidak perlu APP_KEY apa pun, karena config
+# sengaja tidak di-cache sehingga env baru terbaca saat runtime.
+RUN mkdir -p \
+        bootstrap/cache \
+        storage/app/public/avatars \
+        storage/app/public/attachments \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+    && composer dump-autoload --no-dev --optimize --no-interaction
+
+# Cache yang TIDAK bergantung pada env runtime — aman di-baked ke image.
+# config:cache sengaja TIDAK ikut: Vercel menyuntikkan APP_KEY & kredensial DB
+# saat container start, bukan saat build.
+RUN php artisan event:cache --ansi \
+ && php artisan route:cache --ansi \
+ && php artisan view:cache --ansi
+
+# ============================================================
+# Runtime
+# ============================================================
+FROM base AS runtime
+
+COPY --from=dependencies --chown=www-data:www-data /app /app
+COPY --chown=www-data:www-data Caddyfile /etc/frankenphp/Caddyfile
+
+# CAP_NET_BIND_SERVICE mengizinkan proses non-root mengikat port < 1024, jadi
+# image bisa jalan sebagai www-data sekaligus tetap sinkron dengan PORT=80.
+# /config & /data adalah XDG_CONFIG_HOME / XDG_DATA_HOME milik Caddy.
+RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
+    && mkdir -p /config/caddy /data/caddy \
+    && chown -R www-data:www-data /config/caddy /data/caddy
+
+# Default produksi. Env dari Vercel mengoverride nilai-nilai ini, jadi aman
+# meski lupa menyetel APP_DEBUG lewat dashboard.
+ENV PORT=80 \
+    APP_ENV=production \
+    APP_DEBUG=false \
+    APP_RUNTIME=FrankenPHP \
+    LOG_CHANNEL=stderr \
+    CACHE_STORE=database \
+    SESSION_DRIVER=database \
+    QUEUE_CONNECTION=database
+
+USER www-data
+
+# Healthcheck memakai /up milik Laravel, bukan admin API Caddy, supaya status
+# mencerminkan boot aplikasi + koneksi database. Dicek dengan PHP (pasti ada)
+# alih-alih curl (tidak dijamin ada di varian bookworm).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD php -r 'exit(@file_get_contents("http://127.0.0.1:".(getenv("PORT") ?: "80")."/up") !== false ? 0 : 1);' || exit 1
+
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
+
+# PENTING — penyimpanan bersifat efemera:
+#   Filesystem container di-reset setiap deploy. Foto profil (storage/app/
+#   public/avatars) dan lampiran aset (…/attachments) akan HILANG setiap kali
+#   ada deployment baru. Solusinya di docs/deployment.md §10.4 — pakai object
+#   storage (FILESYSTEM_DISK=s3 / Vercel Blob), jangan andalkan filesystem lokal.
