@@ -1,37 +1,50 @@
-{{-- resources/views/auth/login.blade.php --}}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Lendora</title>
-    <style>
-        *{box-sizing:border-box}
-        body{font-family:sans-serif;background:#0B0E14;color:#F5F7FA;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-        .card{background:#121722;padding:36px;border-radius:14px;border:1px solid #252B38;width:340px}
-        h1{margin:0;color:#7C5CFC}
-        label{color:#8B93A7;font-size:13px;display:block;margin-top:10px}
-        input{width:100%;padding:10px;margin:5px 0;background:#0B0E14;color:#F5F7FA;border:1px solid #252B38;border-radius:6px}
-        button{width:100%;background:#7C5CFC;color:#fff;border:0;padding:12px;border-radius:6px;cursor:pointer;margin-top:14px}
-        .err{background:#7f1d1d;color:#fee2e2;padding:8px 10px;border-radius:6px;margin-top:12px;font-size:13px}
-    </style>
-</head>
-<body>
-<div class="card">
-    <h1>Lendora</h1>
-    <p style="color:#8B93A7;font-size:14px">Manage. Reserve. Maintain.</p>
-    <form method="POST" action="{{ route('login.attempt') }}">
-        @csrf
-        <label>Email</label>
-        <input type="email" name="email" value="{{ old('email') }}" required autofocus>
-        <label>Password</label>
-        <input type="password" name="password" required>
-        <label style="display:flex;align-items:center;gap:6px">
-            <input type="checkbox" name="remember" style="width:auto"> Ingat saya
-        </label>
-        <button type="submit">Masuk</button>
-    </form>
-    @if($errors->any())<div class="err">{{ $errors->first() }}</div>@endif
+{{-- resources/views/auth/login.blade.php — Formulir masuk ke Lendora --}}
+@extends('layouts.auth')
+@section('title', 'Masuk')
+
+@section('content')
+<div class="card" style="text-align:center">
+    <div class="btn-row" style="justify-content:center;margin-bottom:14px">
+        <x-logo :size="40" />
+    </div>
+    <p class="eyebrow">Manage. Reserve. Maintain.</p>
+    <h1 style="margin-top:6px">Masuk ke Lendora</h1>
+    <p class="small muted" style="margin-top:6px">Gunakan email dan password yang terdaftar di sistem peminjaman aset.</p>
 </div>
-</body>
-</html>
+
+<form method="POST" action="{{ route('login.attempt') }}" class="card">
+    @csrf
+
+    <div class="form">
+        <x-field name="email" label="Email" required>
+            <x-slot:control>
+                <input type="email" id="f-email" name="email" value="{{ old('email') }}"
+                       placeholder="nama@organisasi.test" required autofocus autocomplete="username"
+                       @error('email') aria-invalid="true" @enderror>
+            </x-slot:control>
+        </x-field>
+
+        <x-field name="password" label="Password" required>
+            <x-slot:control>
+                <input type="password" id="f-password" name="password" required autocomplete="current-password">
+            </x-slot:control>
+        </x-field>
+
+        <label class="check" for="remember">
+            <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
+            <span>
+                Ingat saya
+                <small>Jangan centang di perangkat bersama. Sesi akan bertahan setelah browser ditutup.</small>
+            </span>
+        </label>
+
+        <button type="submit" class="btn btn--primary btn--lg btn--block">
+            <x-icon name="logout" /> Masuk
+        </button>
+    </div>
+</form>
+
+<p class="tiny dim" style="text-align:center;margin-top:14px">
+    &copy; {{ date('Y') }} Lendora · Sistem Peminjaman Aset
+</p>
+@endsection

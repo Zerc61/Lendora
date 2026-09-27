@@ -33,7 +33,14 @@ class MaintenanceTicketController extends Controller
             ->with(['asset.assetType', 'technician', 'reportedBy'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
+            ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->priority))
             ->when($request->filled('technician_id'), fn ($q) => $q->where('technician_id', $request->technician_id))
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $sub->where('code', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhereHas('asset', fn ($a) => $a->where('asset_code', 'like', $term));
+            }))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -42,6 +49,7 @@ class MaintenanceTicketController extends Controller
             'tickets' => $tickets,
             'statuses' => collect(MaintenanceStatus::cases()),
             'types' => collect(MaintenanceType::cases()),
+            'priorities' => collect(MaintenancePriority::cases()),
             'technicians' => User::role('technician')->orderBy('name')->get(['id', 'name']),
         ]);
     }

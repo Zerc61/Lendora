@@ -28,6 +28,13 @@ class IssueController extends Controller
             ->with(['asset.assetType', 'reportedBy'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
+            ->when($request->filled('severity'), fn ($q) => $q->where('severity', $request->severity))
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $sub->where('code', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhereHas('asset', fn ($a) => $a->where('asset_code', 'like', $term));
+            }))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -36,6 +43,7 @@ class IssueController extends Controller
             'issues' => $issues,
             'statuses' => collect(IssueStatus::cases()),
             'types' => collect(IssueType::cases()),
+            'severities' => collect(IssueSeverity::cases()),
         ]);
     }
 

@@ -1,59 +1,103 @@
-{{-- resources/views/admin/tickets/create.blade.php --}}
+{{-- resources/views/admin/tickets/create.blade.php — Form pembuatan tiket maintenance --}}
 @extends('layouts.app')
 @section('title', 'Buat Tiket Maintenance')
+@section('chrome', auth()->user()->primaryRole() === 'technician' ? 'Tiket Saya' : 'Maintenance')
+
 @section('content')
-<h1>Buat Tiket Maintenance</h1>
-<div class="card" style="max-width:560px">
-    <p class="muted" style="font-size:13px">Tiket hanya dapat dibuat untuk unit berstatus <strong>Tersedia</strong> atau <strong>Rusak</strong>. Unit otomatis dikunci dari peminjaman selama maintenance (PDF 4J).</p>
-    <form method="POST" action="{{ route('admin.tickets.store') }}">
-        @csrf
-        <label>Unit Aset</label>
-        <select name="asset_id" required>
-            <option value="">— pilih unit —</option>
-            @foreach($assets as $a)
-            <option value="{{ $a->id }}" {{ old('asset_id', $selectedAssetId) == $a->id ? 'selected' : '' }}>
-                {{ $a->asset_code }} — {{ $a->assetType->name }} [{{ $a->status->value }}]
-            </option>
-            @endforeach
-        </select>
+<x-page-head :back="route('admin.tickets.index')" title="Buat Tiket Maintenance"
+             subtitle="Tiket mengunci unit dari peminjaman sampai kondisi akhir diverifikasi." />
 
-        <label>Terhubung ke Issue (opsional)</label>
-        <select name="issue_id">
-            <option value="">— tidak terhubung issue —</option>
-            @foreach($issues as $i)
-            <option value="{{ $i->id }}" {{ old('issue_id', $selectedIssueId) == $i->id ? 'selected' : '' }}>
-                {{ $i->code }} — {{ Str::limit($i->description, 40) }}
-            </option>
-            @endforeach
-        </select>
+<x-card title="Detail Pekerjaan" icon="wrench" tint>
+    <x-slot:actions>
+        <span class="badge tone-warn">Status awal: Dibuka</span>
+    </x-slot:actions>
 
-        <div class="row">
-            <div style="flex:1">
-                <label>Jenis Pekerjaan</label>
-                <select name="type">
-                    @foreach($types as $t)
-                    <option value="{{ $t->value }}" {{ old('type', 'corrective') === $t->value ? 'selected' : '' }}>{{ $t->value }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div style="flex:1">
-                <label>Prioritas</label>
-                <select name="priority">
-                    @foreach($priorities as $p)
-                    <option value="{{ $p->value }}" {{ old('priority', 'medium') === $p->value ? 'selected' : '' }}>{{ $p->value }}</option>
-                    @endforeach
-                </select>
-            </div>
+    <div class="stack" style="--gap:16px">
+        <div class="inline-alert tone-warn">
+            <x-icon name="alert" />
+            <div>Unit yang dipilih otomatis berstatus <b>Maintenance</b> dan tidak bisa dipinjam sampai tiket
+                diverifikasi atau dibatalkan.</div>
         </div>
 
-        <label>Deskripsi Masalah / Rencana Kerja (min. 10 karakter)</label>
-        <textarea name="description" rows="4" required>{{ old('description') }}</textarea>
+        <form method="POST" action="{{ route('admin.tickets.store') }}" class="form">
+            @csrf
 
-        <label>Jadwal (opsional)</label>
-        <input type="date" name="scheduled_at" value="{{ old('scheduled_at') }}">
+            <div class="form-grid">
+                <x-field name="asset_id" label="Unit Aset" required
+                         hint="Tersedia {{ $assets->count() }} unit berstatus Tersedia atau Rusak.">
+                    <x-slot:control>
+                        <select name="asset_id" id="f-asset_id" required>
+                            <option value="">— pilih unit —</option>
+                            @foreach ($assets as $a)
+                                <option value="{{ $a->id }}" @selected(old('asset_id', $selectedAssetId) == $a->id)>
+                                    {{ $a->asset_code }} — {{ $a->assetType->name }} ({{ $a->status->label() }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
 
-        <button>Simpan Tiket</button>
-        <a href="{{ route('admin.tickets.index') }}" style="margin-left:8px">Batal</a>
-    </form>
-</div>
+                <x-field name="issue_id" label="Issue Terkait" hint="Opsional — hubungkan ke laporan kerusakan yang belum punya tiket.">
+                    <x-slot:control>
+                        <select name="issue_id" id="f-issue_id">
+                            <option value="">— tidak terhubung issue —</option>
+                            @foreach ($issues as $i)
+                                <option value="{{ $i->id }}" @selected(old('issue_id', $selectedIssueId) == $i->id)>
+                                    {{ $i->code }} — {{ $i->asset?->asset_code }} · {{ Str::limit($i->description, 40) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="form-grid">
+                <x-field name="type" label="Jenis Pekerjaan" required>
+                    <x-slot:control>
+                        <select name="type" id="f-type" required>
+                            @foreach ($types as $t)
+                                <option value="{{ $t->value }}" @selected(old('type', 'corrective') === $t->value)>{{ $t->label() }}</option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
+
+                <x-field name="priority" label="Prioritas" required>
+                    <x-slot:control>
+                        <select name="priority" id="f-priority" required>
+                            @foreach ($priorities as $p)
+                                <option value="{{ $p->value }}" @selected(old('priority', 'medium') === $p->value)>{{ $p->label() }}</option>
+                            @endforeach
+                        </select>
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="form-grid">
+                <x-field name="description" label="Rencana Kerja" required
+                         hint="Tuliskan pekerjaan yang akan dilakukan dan gejala yang diamati. Minimal 10 karakter.">
+                    <x-slot:control>
+                        <textarea name="description" id="f-description" rows="4" required
+                                  placeholder="Contoh: ganti modul laser proyektor dan uji selama 30 menit.">{{ old('description') }}</textarea>
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="form-grid">
+                <x-field name="scheduled_at" label="Jadwal Pengerjaan" hint="Opsional — tidak boleh lebih awal dari hari ini.">
+                    <x-slot:control>
+                        <input type="date" name="scheduled_at" id="f-scheduled_at" value="{{ old('scheduled_at') }}">
+                    </x-slot:control>
+                </x-field>
+            </div>
+
+            <div class="card__foot">
+                <div class="btn-row btn-row--end">
+                    <x-btn :href="route('admin.tickets.index')" variant="ghost">Batal</x-btn>
+                    <button type="submit" class="btn btn--primary"><x-icon name="wrench" /> Simpan Tiket</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</x-card>
 @endsection
