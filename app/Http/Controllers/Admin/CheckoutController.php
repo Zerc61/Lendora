@@ -14,7 +14,7 @@ class CheckoutController extends Controller
     public function index()
     {
         // Antrean: transaksi yang disetujui tapi unit belum diserahkan
-        $borrowings = Borrowing::where('status', BorrowingStatus::Pending)
+        $borrowings = Borrowing::where('status', BorrowingStatus::Approved)
             ->with(['borrower', 'items.asset.assetType'])
             ->orderBy('due_at')
             ->paginate(10);
@@ -24,7 +24,7 @@ class CheckoutController extends Controller
 
     public function show(Borrowing $borrowing)
     {
-        abort_unless($borrowing->status === BorrowingStatus::Pending, 404, 'Transaksi ini tidak menunggu checkout.');
+        abort_unless($borrowing->status === BorrowingStatus::Approved, 404, 'Transaksi ini tidak menunggu checkout.');
 
         $borrowing->load(['borrower', 'reservation', 'items.asset.assetType']);
 

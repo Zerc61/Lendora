@@ -23,8 +23,8 @@ class CheckoutBorrowing
     public function execute(Borrowing $borrowing, User $operator, array $itemsInput): Borrowing
     {
         return DB::transaction(function () use ($borrowing, $operator, $itemsInput) {
-            if ($borrowing->status !== BorrowingStatus::Pending) {
-                throw ValidationException::withMessages(['status' => 'Peminjaman ini sudah diproses atau dibatalkan.']);
+            if ($borrowing->status !== BorrowingStatus::Approved) {
+                throw ValidationException::withMessages(['status' => 'Peminjaman ini sudah diserah-terima atau dibatalkan.']);
             }
 
             foreach ($borrowing->items as $item) {

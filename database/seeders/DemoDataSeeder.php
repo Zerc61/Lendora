@@ -87,7 +87,7 @@ class DemoDataSeeder extends Seeder
             [BorrowingStatus::Borrowed, now()->subDays(9), now()->subDays(2), now()->subDays(9)],
             [BorrowingStatus::Overdue, now()->subDays(12), now()->subDays(4), now()->subDays(12)],
             [BorrowingStatus::Returned, now()->subDays(20), now()->subDays(16), now()->subDays(20)],
-            [BorrowingStatus::Pending, now()->addDays(6), now()->addDays(8), null],
+            [BorrowingStatus::Approved, now()->addDays(2), now()->addDays(4), null],
         ];
 
         foreach ($borrowingPlans as $i => [$status, $out, $due, $returned]) {

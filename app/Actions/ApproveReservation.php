@@ -40,14 +40,18 @@ class ApproveReservation
                 }
             });
 
-            // Transaksi peminjaman dibuat otomatis — menunggu checkout fisik oleh operator
+            // Transaksi peminjaman dibuat otomatis — status "disetujui": reservasi
+            // sudah disetujui, unit tinggal menunggu serah-terima fisik operator.
+            // Jangan pakai Pending: antrean check-out (CheckoutController) dan
+            // penghitung "siap check-out" menyaring status Approved, sehingga
+            // transaksi akan tampil di daftar tapi tidak pernah terhitung.
             $borrowing = Borrowing::create([
                 'code' => $this->codes->next('BRW', 'borrowings'),
                 'organization_id' => $reservation->organization_id,
                 'reservation_id' => $reservation->id,
                 'borrower_id' => $reservation->user_id,
                 'approved_by' => $approver->id,
-                'status' => BorrowingStatus::Pending,
+                'status' => BorrowingStatus::Approved,
                 'purpose' => $reservation->purpose,
                 'due_at' => $reservation->end_at, // batas kembali = akhir reservasi
             ]);

@@ -11,7 +11,7 @@
     @endcan
 </x-page-head>
 
-<x-filter-bar :keep="['status', 'type', 'technician_id']" reset="{{ route('admin.tickets.index') }}"
+<x-filter-bar :keep="['status', 'type', 'priority', 'technician_id']" reset="{{ route('admin.tickets.index') }}"
               placeholder="Cari kode tiket…">
     <x-slot:controls>
         <x-field name="status" label="Status">
@@ -31,6 +31,17 @@
                     <option value="">Semua jenis</option>
                     @foreach ($types as $t)
                         <option value="{{ $t->value }}" @selected(request('type') === $t->value)>{{ $t->label() }}</option>
+                    @endforeach
+                </select>
+            </x-slot:control>
+        </x-field>
+
+        <x-field name="priority" label="Prioritas">
+            <x-slot:control>
+                <select name="priority" id="f-priority" data-autosubmit>
+                    <option value="">Semua prioritas</option>
+                    @foreach ($priorities as $p)
+                        <option value="{{ $p->value }}" @selected(request('priority') === $p->value)>{{ $p->label() }}</option>
                     @endforeach
                 </select>
             </x-slot:control>

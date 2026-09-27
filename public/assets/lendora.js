@@ -214,6 +214,29 @@
     });
   }
 
+  /* ── Fade tepi strip horizontal ───────────────────────────────────────
+     Menjawab satu masalah nyata di tempat kerja: workbar (status tiket /
+     antrean staff) digeser ke samping, dan tanpa isyarat visual chip terakhir
+     terpotong. Atribut data-scroll diisi dari ukuran elemen, jadi fade hanya
+     muncul kalau strip benar-benar bisa digeser. Nilainya:
+     none | start | middle | end.                                            */
+  function initScrollShadow() {
+    const nodes = $$('.workbar, .table-wrap');
+    if (!nodes.length) return;
+    const update = (el) => {
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 2) { el.dataset.scroll = 'none'; return; }
+      const x = Math.round(el.scrollLeft);
+      el.dataset.scroll = x <= 2 ? 'start' : x >= max - 2 ? 'end' : 'middle';
+    };
+    const ro = new ResizeObserver((entries) => entries.forEach((e) => update(e.target)));
+    nodes.forEach((el) => {
+      update(el);
+      ro.observe(el);
+      el.addEventListener('scroll', () => update(el), { passive: true });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initMenus();
     initRail();
@@ -225,5 +248,6 @@
     initShortcuts();
     initTabs();
     initSubmitState();
+    initScrollShadow();
   });
 })();

@@ -25,6 +25,8 @@ class AuditLogController extends Controller
             ->when($request->filled('action'), fn ($q) => $q->where('action', 'like', "%{$request->action}%"))
             ->when($request->filled('actor_id'), fn ($q) => $q->where('actor_id', $request->actor_id))
             ->when($request->filled('subject_type'), fn ($q) => $q->where('subject_type', $request->subject_type))
+            ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')->startOfDay()))
+            ->when($request->filled('to'), fn ($q) => $q->where('created_at', '<=', $request->date('to')->endOfDay()))
             ->latest('created_at')
             ->paginate(20)
             ->withQueryString();

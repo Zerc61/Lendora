@@ -108,6 +108,11 @@ p { margin: 0; }
 ul, ol { margin: 0; padding: 0; }
 img, svg, video, canvas { max-width: 100%; display: block; }
 
+/* Geometri dasar ikon. Tanpa ini SVG inline jatuh ke ukuran default browser
+   (300×150) dan merusak kartu/flexbox-nya. Komponen menimpa lewat
+   `.btn svg`, `.badge svg`, `.nav-item svg`, dst. */
+svg.icon { width: 18px; height: 18px; flex: none; }
+
 a { color: var(--primary-2); text-decoration: none; transition: color var(--dur-1) var(--ease); }
 a:hover { color: var(--accent); }
 
@@ -132,7 +137,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 
 /* ── 3. Typography helpers ─────────────────────────────────────────────── */
 .eyebrow {
-  font-size: .66rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -171,6 +176,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
   max-width: 1560px;
   width: 100%;
 }
+/* Ritme vertikal: setiap blok tingkat atas selalu punya jarak dari blok
+   sebelumnya, apa pun jenisnya (grid, card, tabel, section). */
+.app__body > * + * { margin-top: 18px; }
 .app__body--wide { max-width: none; }
 .app__body--narrow { max-width: 980px; }
 
@@ -197,13 +205,13 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 .rail__brand img, .rail__brand svg { width: 32px; height: 32px; border-radius: 9px; flex: none; }
 .rail__wordmark { display: flex; flex-direction: column; line-height: 1.05; overflow: hidden; }
 .rail__wordmark b { font-size: .98rem; font-weight: 800; letter-spacing: -.02em; }
-.rail__wordmark span { font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+.rail__wordmark span { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
 
 .rail__scroll { flex: 1; overflow-y: auto; padding: 16px 12px 20px; }
 
 .nav-group + .nav-group { margin-top: 18px; }
 .nav-group__label {
-  font-size: .6rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -263,6 +271,42 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 
 .rail__foot { flex: none; border-top: 1px solid var(--border); padding: 10px 12px 12px; }
 
+/* Rail ringkas (shell teknisi): ikon + label kecil, tanpa grup.
+   Lebar rail dibaca `.app` dari variabel di <body>, jadi `--rail` harus
+   di-set pada `.shell--technician`, bukan di `.rail--slim`. */
+.rail--slim .rail__brand { justify-content: center; padding: 0; }
+.rail--slim .rail__wordmark { display: none; }
+.rail--slim .rail__scroll { padding: 14px 10px 18px; }
+.rail--slim .nav-group__label { display: none; }
+.rail--slim .nav-group + .nav-group { margin-top: 12px; }
+.rail--slim .nav-item { flex-direction: column; gap: 5px; padding: 9px 4px 8px; text-align: center; }
+.rail--slim .nav-item svg { width: 19px; height: 19px; }
+.rail--slim .nav-item__label {
+  flex: none;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1.15;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.rail--slim .nav-item__count {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  font-size: .68rem;
+  box-shadow: 0 0 0 2px #0D1119;
+}
+.rail--slim .nav-item.is-active::before { left: -10px; height: 26px; }
+.rail--slim .rail__foot { padding: 10px 10px 12px; }
+.rail--slim .user-chip { justify-content: center; padding: 6px; }
+.rail--slim .user-chip__meta { display: none; }
+.rail--slim .user-chip svg { display: none; }
+
 .user-chip {
   display: flex;
   align-items: center;
@@ -281,7 +325,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 .user-chip:hover { border-color: var(--border-3); background: var(--surface-3); }
 .user-chip__meta { min-width: 0; flex: 1; }
 .user-chip__meta b { display: block; font-size: .82rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.user-chip__meta span { display: block; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+.user-chip__meta span { display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
 
 .avatar {
   width: 30px;
@@ -378,7 +422,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 .search kbd {
   position: absolute;
   right: 9px;
-  font-size: .64rem;
+  font-size: .68rem;
   font-weight: 700;
   color: var(--dim);
   border: 1px solid var(--border-2);
@@ -463,7 +507,10 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
   animation: rise var(--dur-4) var(--ease) both;
   animation-delay: var(--d, 0ms);
 }
-.card + .card, .stack > * + * { margin-top: var(--gap, 16px); }
+.card + .card { margin-top: var(--gap, 16px); }
+
+/* `.stack` = kolom vertikal dengan jarak seragam (pengganti margin antar anak) */
+.stack { display: grid; align-content: start; gap: var(--gap, 16px); }
 .card--flush { padding: 0; overflow: hidden; }
 .card--pad-lg { padding: 24px; }
 .card--tint { background: linear-gradient(160deg, rgba(124, 92, 252, .10), rgba(18, 23, 34, .6) 55%), var(--surface); }
@@ -484,6 +531,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-5, 20px) 0
 .card--hover:hover { transform: translateY(-2px); border-color: var(--border-3); box-shadow: var(--shadow-2); }
 
 .grid { display: grid; gap: 16px; }
+/* Anak grid mewarisi `min-width: auto` → lebar min-content dapat memaksa
+   kolom melebar melewati track. Nolkan agar kolom bisa menyusut. */
+.grid > *, .stack > *, .deck > * { min-width: 0; }
 .grid--2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .grid--3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .grid--4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
@@ -517,7 +567,7 @@ a.stat:hover { transform: translateY(-2px); border-color: var(--border-3); color
   opacity: .9;
 }
 .stat__label {
-  font-size: .64rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .13em;
   text-transform: uppercase;
@@ -658,7 +708,7 @@ a.chip:hover { color: var(--text); border-color: var(--border-3); background: va
 
 .kbd {
   font-family: var(--mono);
-  font-size: .66rem;
+  font-size: .68rem;
   padding: 2px 6px;
   border-radius: var(--r-xs);
   border: 1px solid var(--border-2);
@@ -678,7 +728,7 @@ a.chip:hover { color: var(--text); border-color: var(--border-3); background: va
   z-index: 1;
   text-align: left;
   padding: 10px 14px;
-  font-size: .64rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -734,7 +784,7 @@ a.chip:hover { color: var(--text); border-color: var(--border-3); background: va
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 16px; }
 .field { display: grid; gap: 6px; min-width: 0; }
 .field > label, .label {
-  font-size: .66rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -813,7 +863,7 @@ input[type=file]::file-selector-button {
   gap: 12px;
   align-items: end;
 }
-.filters__actions { display: flex; gap: 8px; align-items: end; }
+.filters__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; min-width: 0; }
 
 .segmented {
   display: inline-flex;
@@ -991,7 +1041,7 @@ input[type=file]::file-selector-button {
 }
 .spark__bar:hover::after { opacity: 1; }
 @keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-.spark__label { font-size: .64rem; color: var(--dim); font-weight: 700; letter-spacing: .04em; }
+.spark__label { font-size: .68rem; color: var(--dim); font-weight: 700; letter-spacing: .04em; }
 
 /* donut */
 .donut { display: grid; place-items: center; position: relative; width: 148px; height: 148px; flex: none; }
@@ -999,7 +1049,7 @@ input[type=file]::file-selector-button {
 .donut circle { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset var(--dur-4) var(--ease); }
 .donut__center { position: absolute; text-align: center; }
 .donut__center b { display: block; font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em; }
-.donut__center span { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
+.donut__center span { font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
 
 /* ── 18. Lists / timeline ──────────────────────────────────────────────── */
 .list { display: grid; }
@@ -1017,7 +1067,7 @@ input[type=file]::file-selector-button {
 .list__main { flex: 1; min-width: 0; }
 .list__main b { display: block; font-size: .82rem; font-weight: 700; }
 .list__main span { display: block; font-size: .72rem; color: var(--muted); }
-.list__side { text-align: right; flex: none; }
+.list__side { flex: none; min-width: 0; text-align: right; }
 
 .timeline { position: relative; display: grid; gap: 0; padding-left: 22px; }
 .timeline::before {
@@ -1058,7 +1108,7 @@ input[type=file]::file-selector-button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: .66rem;
+  font-size: .68rem;
   font-weight: 800;
   background: var(--surface-3);
   border: 1px solid var(--border-2);
@@ -1101,7 +1151,7 @@ input[type=file]::file-selector-button {
   left: 7px;
   padding: 1px 7px;
   border-radius: var(--r-full);
-  font-size: .6rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -1218,7 +1268,7 @@ input[type=file]::file-selector-button {
   gap: 3px;
   padding: 9px 4px 8px;
   color: var(--dim);
-  font-size: .62rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .02em;
   position: relative;
@@ -1242,7 +1292,7 @@ input[type=file]::file-selector-button {
   right: calc(50% - 22px);
   height: 15px;
   min-width: 15px;
-  font-size: .58rem;
+  font-size: .68rem;
   padding: 0 4px;
 }
 
@@ -1286,7 +1336,7 @@ input[type=file]::file-selector-button {
 
 /* ── 23. Misc atoms ────────────────────────────────────────────────────── */
 .divider { height: 1px; background: var(--border); margin: 14px 0; }
-.divider--label { display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.divider--label { display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .divider--label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
 .qrbox { display: grid; place-items: center; padding: 10px; }
@@ -1331,6 +1381,7 @@ input[type=file]::file-selector-button {
   --grad-soft: linear-gradient(135deg, rgba(34, 211, 238, .18), rgba(14, 138, 156, .10));
 }
 .shell--technician {
+  --rail: 92px;
   --primary: #F59E0B;
   --primary-2: #FBBF24;
   --primary-dark: #C2710A;
@@ -1409,10 +1460,10 @@ a.deck__card:hover { transform: translateY(-2px); border-color: var(--tone-line,
   color: var(--tone, var(--text-2));
 }
 .deck__icon svg { width: 19px; height: 19px; }
-.deck__meta { min-width: 0; }
+.deck__meta { flex: 1; min-width: 0; }
 .deck__meta b {
   display: block;
-  font-size: .62rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .13em;
   text-transform: uppercase;
@@ -1428,7 +1479,7 @@ a.deck__card:hover { transform: translateY(-2px); border-color: var(--tone-line,
   color: var(--tone, var(--text));
 }
 .deck__meta span { font-size: .7rem; color: var(--muted); }
-.deck__card > .icon { margin-left: auto; color: var(--dim); flex: none; }
+.deck__card > .icon { width: 15px; height: 15px; margin-left: auto; color: var(--dim); flex: none; }
 
 /* work bar (technician) */
 .workbar {
@@ -1444,10 +1495,30 @@ a.deck__card:hover { transform: translateY(-2px); border-color: var(--tone-line,
   backdrop-filter: blur(12px) saturate(140%);
   overflow-x: auto;
   scrollbar-width: none;
+  /* Snapping ringan: gesekan berhenti di antar-chip, bukan di tengah chip. */
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 22px;
+  overscroll-behavior-x: contain;
 }
 .workbar::-webkit-scrollbar { display: none; }
+.workbar > * { scroll-snap-align: start; }
+
+/* Fade tepi hanya muncul saat strip benar-benar bisa digeser (dipasang
+   oleh lendora.js lewat atribut data-scroll). */
+.workbar[data-scroll="start"] {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+}
+.workbar[data-scroll="end"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px);
+  mask-image: linear-gradient(90deg, transparent, #000 40px);
+}
+.workbar[data-scroll="middle"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
 .workbar__label {
-  font-size: .6rem;
+  font-size: .68rem;
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -1455,6 +1526,7 @@ a.deck__card:hover { transform: translateY(-2px); border-color: var(--tone-line,
   flex: none;
   padding-right: 4px;
 }
+.workbar__spacer { flex: 1 0 12px; }
 .workchip {
   display: inline-flex;
   align-items: center;
@@ -1494,9 +1566,38 @@ a.workchip:hover { color: #fff; border-color: var(--primary-line); background: v
 }
 .appbar__brand { display: flex; align-items: center; gap: 10px; }
 .appbar__brand svg, .appbar__brand img { width: 30px; height: 30px; border-radius: 9px; }
-.appbar__body { flex: 1; min-width: 0; }
+/* Nama & peran tidak boleh melebar jadi setengah layar; navbar menempel di
+   sebelahnya dan blok aksi tetap terdorong ke tepi kanan. */
+.appbar__body { flex: 0 1 auto; min-width: 0; max-width: 300px; }
 .appbar__body b { display: block; font-size: .92rem; font-weight: 800; letter-spacing: -.01em; }
 .appbar__body span { display: block; font-size: .7rem; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.appbar__actions { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* Navbar section untuk layar lebar. Di bawah 1024px navigasi pindah ke
+   drawer + bottom nav, jadi burger tetap tampil. */
+.appbar__nav { display: none; align-items: center; gap: 2px; flex: none; margin-right: auto; }
+.appbar__nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+.appbar__nav a:hover { background: var(--surface-hover); color: var(--text); }
+.appbar__nav a.is-active { background: var(--primary-soft); color: var(--primary-2); }
+.appbar__nav svg { width: 15px; height: 15px; }
+
+@media (min-width: 1024px) {
+  .appbar { gap: 14px; }
+  .appbar__nav { display: flex; }
+  .appbar__burger { display: none; }
+}
 
 .hero {
   position: relative;
@@ -1601,10 +1702,33 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .search { width: min(240px, 34vw); }
 }
 
+@media (max-width: 900px) {
+  .filters__actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+
+/* Baris list: di layar sempit badge/tombol pindah ke baris sendiri supaya
+   judul tidak tergilas oleh konten ber-nowrap. */
+@media (max-width: 720px) {
+  .list__row { flex-wrap: wrap; row-gap: 8px; }
+  .list__side {
+    flex: 1 0 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    text-align: left;
+  }
+  .list__row > .btn { flex: 0 0 auto; }
+}
+
 @media (max-width: 767px) {
-  body { font-size: 13.5px; }
+  /* Catatan: jangan set `body { font-size }` di sini — seluruh design system
+     memakai rem (16px) sehingga override ini nyaris tak berpengaruh dan
+     hanya menggeser elemen `em`. Ramping lewat padding, bukan font root. */
   h1 { font-size: 1.28rem; }
   .app__body { padding: 16px 14px 92px; }
+  .app__body > * + * { margin-top: 14px; }
+  .stack { gap: var(--gap, 14px); }
   .topbar { padding: 0 14px; gap: 10px; }
   .topbar__title span { display: none; }
   .search { display: none; }
@@ -1625,6 +1749,8 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   .hide-sm { display: none !important; }
   .btn { height: 36px; }
   .btn--lg { height: 44px; }
+  .deck { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .deck__meta strong { font-size: 1.4rem; }
 }
 
 @media (max-width: 400px) {

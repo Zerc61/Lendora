@@ -11,7 +11,7 @@
     @endcan
 </x-page-head>
 
-<x-filter-bar :keep="['status', 'type']" reset="{{ route('admin.issues.index') }}"
+<x-filter-bar :keep="['status', 'type', 'severity']" reset="{{ route('admin.issues.index') }}"
               placeholder="Cari kode issue…">
     <x-slot:controls>
         <x-field name="status" label="Status">
@@ -35,10 +35,21 @@
                 </select>
             </x-slot:control>
         </x-field>
+
+        <x-field name="severity" label="Tingkat">
+            <x-slot:control>
+                <select name="severity" id="f-severity" data-autosubmit>
+                    <option value="">Semua tingkat</option>
+                    @foreach ($severities as $s)
+                        <option value="{{ $s->value }}" @selected(request('severity') === $s->value)>{{ $s->label() }}</option>
+                    @endforeach
+                </select>
+            </x-slot:control>
+        </x-field>
     </x-slot:controls>
 </x-filter-bar>
 
-@php $filtered = request()->filled('status') || request()->filled('type'); @endphp
+@php $filtered = request()->filled('status') || request()->filled('type') || request()->filled('severity'); @endphp
 
 <div class="card card--flush">
     <div class="table-wrap">

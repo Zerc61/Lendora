@@ -62,6 +62,6 @@
 @endphp
 <svg {{ $attributes->merge(['class' => 'icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor"
      stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"
-     @if ($size) width="{{ $size }}" height="{{ $size }}" @endif>
+     width="{{ $size ?? 18 }}" height="{{ $size ?? 18 }}">
     {!! $paths[$name] ?? $paths['dot'] !!}
 </svg>

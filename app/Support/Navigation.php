@@ -38,6 +38,35 @@ final class Navigation
         };
     }
 
+    /**
+     * Jumlah tiket per status untuk workbar teknisi.
+     *
+     * @return array<string, int>
+     */
+    public static function ticketStatusCounts(User $user): array
+    {
+        if (! $user->can('maintenance.view')) {
+            return [];
+        }
+
+        $counts = MaintenanceTicket::query()
+            ->where(function ($query) use ($user) {
+                $query->where('technician_id', $user->id)->orWhereNull('technician_id');
+            })
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->map(fn ($n) => (int) $n)
+            ->all();
+
+        $out = [];
+        foreach (MaintenanceStatus::cases() as $status) {
+            $out[$status->value] = $counts[$status->value] ?? 0;
+        }
+
+        return $out;
+    }
+
     /** Item ringkas untuk bottom nav (mobile). */
     public static function primary(User $user): array
     {
@@ -135,7 +164,7 @@ final class Navigation
                 self::i('admin.issues.index', 'Issue Aset', 'alert', 'admin.issues.*', self::issueQueue($user), 'alert', 'issue.view'),
             ]),
             self::g('Lainnya', [
-                self::i('dashboard', 'Dashboard', 'grid', 'dashboard'),
+                self::i('dashboard', 'Beranda', 'grid', 'dashboard'),
                 self::i('notifications.index', 'Notifikasi', 'bell', 'notifications.*', self::unread($user), 'alert'),
             ]),
         ];

@@ -135,4 +135,91 @@ class ShellTest extends TestCase
             ->assertOk()
             ->assertSee($asset->asset_code, false);
     }
+
+    /* ── Guardrail CSS ────────────────────────────────────────────────────
+       Audit geometri headless (Puppeteer) dulu menemukan dua bug yang
+       merusak semua halaman: ikon tanpa ukuran dasar (SVG inline jatuh ke
+       300×150) dan blok tingkat atas yang berdempet tanpa jarak. Keduanya
+       tidak terlihat di test DOM, jadi dijaga lewat isi stylesheet.       */
+
+    public function test_stylesheet_memiliki_geometri_dasar(): void
+    {
+        $css = file_get_contents(public_path('assets/lendora.css'));
+
+        $this->assertMatchesRegularExpression(
+            '/svg\.icon\s*\{[^}]*width:/',
+            $css,
+            'Ikon harus punya ukuran dasar; tanpa itu <x-icon> meledak jadi 300×150.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.app__body\s*>\s*\*\s*\+\s*\*\s*\{[^}]*margin-top:/',
+            $css,
+            'Blok tingkat atas di .app__body butuh ritme vertikal (kartu berdempet).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.grid\s*>\s*\*\s*,[\s\S]{0,60}min-width:\s*0/',
+            $css,
+            'Anak grid butuh min-width: 0 agar kolom bisa menyusut.'
+        );
+    }
+
+    public function test_teknisi_mempunyai_rail_section_dan_strip_status(): void
+    {
+        $user = $this->loginAs('teknisi@lendora.test');
+
+        // Rail ringkas = navigasi section selalu ada di desktop, bukan cuma
+        // lewat burger atau chip status.
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('rail rail--slim', false)
+            ->assertSee(route('admin.assets.index'), false)
+            ->assertSee(route('admin.issues.index'), false);
+
+        // Strip status hanya di Beranda & seksi Tiket.
+        $this->get(route('admin.tickets.index'))
+            ->assertOk()
+            ->assertSee('class="workbar', false);
+
+        $this->get(route('admin.assets.index'))
+            ->assertOk()
+            ->assertDontSee('class="workbar', false);
+
+        $counts = Navigation::ticketStatusCounts($user);
+        $this->assertSame(
+            array_map(fn ($c) => $c->value, \App\Enums\MaintenanceStatus::cases()),
+            array_keys($counts),
+            'Strip status harus memuat seluruh status tiket, termasuk yang nol.'
+        );
+    }
+
+    public function test_strip_status_menampilkan_angka(): void
+    {
+        $this->loginAs('teknisi@lendora.test');
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('workchip', false)
+            ->assertSee('status=open', false);
+    }
+
+    public function test_peminjam_punya_navbar_section_di_layar_lebar(): void
+    {
+        $this->loginAs('budi@lendora.test');
+
+        $response = $this->get(route('dashboard'))->assertOk();
+
+        // Section di navbar; aksi & akun dipindah ke tombol & menu avatar agar
+        // appbar tidak memuat dua menu yang isinya sama.
+        $response->assertSee('class="appbar__nav"', false)
+            ->assertSee(route('my.reservations.index'), false)
+            ->assertSee(route('my.borrowings.index'), false)
+            ->assertDontSee('Menu lengkap', false);
+
+        // Aksi "Ajukan" tetap ada (FAB hanya muncul di ≤767px).
+        $this->assertStringContainsString(
+            'Ajukan',
+            $response->getContent(),
+            'Aksi utama peminjam harus tetap terjangkau di desktop.'
+        );
+    }
 }

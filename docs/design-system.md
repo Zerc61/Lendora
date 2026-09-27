@@ -30,8 +30,8 @@ atau set `ASSET_VERSION` di `.env`.
 |---|---|---|
 | admin / super-admin | `layouts.admin` | Rail penuh 262px dengan 5 grup menu, topbar dengan pencarian global + menu "Buat", strip konteks di bawah topbar, aksen ungu |
 | staff | `layouts.staff` | Rail ringkas 228px, **workbar antrean** (Check-out / Check-in / Reservasi) langsung di atas konten, palet diubah ke cyan |
-| technician | `layouts.technician` | Tanpa rail sama sekali, **workbar status tiket** yang bisa di-scroll, konten lebar, palet diubah ke amber |
-| borrower | `layouts.borrower` | App mobile-first: appbar, **bottom nav**, tombol FAB, menu lewat dropdown, tanpa rail |
+| technician | `layouts.technician` | **Rail ringkas 92px** (ikon + label kecil) untuk navigasi section, **workbar status tiket ber-angka** yang hanya muncul di Beranda & seksi Tiket, konten lebar, palet diubah ke amber |
+| borrower | `layouts.borrower` | App mobile-first: appbar, **bottom nav**, tombol FAB, **navbar section di ≥1024px**, drawer untuk layar kecil, tanpa rail |
 
 Semua view memakai `@extends('layouts.app')`. Layout `app` hanya **dispatcher** yang
 memilih shell sesuai `auth()->user()->primaryRole()` — jadi satu file view aman dipakai
@@ -92,6 +92,7 @@ lengkap dengan badge counter antrean):
 
 - `Navigation::for($user)` → grup menu untuk rail/drawer
 - `Navigation::primary($user)` → item ringkas untuk bottom nav (mobile)
+- `Navigation::ticketStatusCounts($user)` → jumlah tiket per status untuk workbar teknisi
 
 Layout memakai `@include('partials.rail-nav', ['groups' => $nav])`; item aktif ditandai
 otomatis lewat `request()->routeIs($item['match'])`.
@@ -111,6 +112,14 @@ otomatis lewat `request()->routeIs($item['match'])`.
 8. Aksi merusak/bernilai besar → `data-confirm` (JS menampilkan modal konfirmasi).
 9. Tabel: `<th scope="col">`, kosong → `<x-empty>` dengan `colspan`, pagination → `->links()`.
 10. Tabel di halaman mobile: sembunyikan kolom sekunder dengan `.hide-sm`.
+11. Ikon selalu lewat `<x-icon>` — stylesheet punya aturan dasar `svg.icon`
+    (18×18, `flex: none`). Tanpa aturan itu SVG inline jatuh ke ukuran default
+    browser (300×150) dan merusak kartu/flexbox-nya.
+12. Ritme vertikal antar blok tingkat atas dijamin `.app__body > * + *`
+    (margin-top 18px). Jangan mengandalkan margin antar komponen — kartu yang
+    berdempet tanpa jarak adalah gejala aturan ini hilang.
+13. Anak grid/stack butuh `min-width: 0` (sudah diatur di stylesheet) — tanpa
+    itu konten `nowrap` memaksa kolom melebar melewati track-nya.
 
 ---
 

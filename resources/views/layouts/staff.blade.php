@@ -71,10 +71,6 @@
                     <x-icon name="alert" /> Issue
                 </a>
             @endcan
-            <span class="topbar__spacer"></span>
-            <a href="{{ route('dashboard') }}" class="workchip {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
-                <x-icon name="grid" /> Ringkasan
-            </a>
         </nav>
 
         <main class="app__body">

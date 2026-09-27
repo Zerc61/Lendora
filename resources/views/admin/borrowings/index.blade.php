@@ -111,7 +111,7 @@
                     </td>
                     <td class="col-actions">
                         <div class="btn-row btn-row--end">
-                            @if ($b->status->value === 'pending')
+                            @if ($b->status->value === 'approved')
                                 @can('checkout.perform')
                                     <x-btn :href="route('admin.checkout.show', $b)" size="sm" variant="primary" icon="out"
                                             :aria-label="'Proses check-out ' . $b->code" />

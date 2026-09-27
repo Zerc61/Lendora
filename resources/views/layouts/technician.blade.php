@@ -1,9 +1,22 @@
 {{-- resources/views/layouts/technician.blade.php — Shell "Workbench" (teknisi)
-     Tanpa rail: workbar horizontal berisi status tiket, konten dua kolom.      --}}
+     Rail ringkas (ikon + label) untuk section, workbar berisi status tiket. --}}
 @php
     $user = auth()->user();
     $nav = \App\Support\Navigation::for($user);
-    $mine = collect($nav)->flatMap(fn ($g) => $g['items'])->firstWhere('route', 'admin.tickets.index');
+    $statusCounts = \App\Support\Navigation::ticketStatusCounts($user);
+    $ticketsUrl = route('admin.tickets.index');
+    $ticketsRoute = 'admin.tickets.*';
+    $statuses = [
+        'open'           => ['label' => 'Menunggu', 'icon' => 'alert', 'hot' => true],
+        'assigned'       => ['label' => 'Ditugaskan', 'icon' => 'clipboard', 'hot' => false],
+        'in_progress'    => ['label' => 'Dikerjakan', 'icon' => 'play', 'hot' => false],
+        'waiting_parts'  => ['label' => 'Menunggu Part', 'icon' => 'box', 'hot' => false],
+        'completed'      => ['label' => 'Selesai', 'icon' => 'check-circle', 'hot' => false],
+    ];
+    $activeStatus = request('status');
+    // Strip status hanya relevan di Beranda & seksi Tiket; di Aset/Issue strip
+    // ini hanya menambah derau sehingga tinggi chrome ikut menyusut.
+    $showStatusStrip = request()->routeIs('dashboard', 'admin.tickets.*') && $statusCounts;
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -11,17 +24,24 @@
     @include('partials.head')
 </head>
 <body class="shell--technician">
-<div class="app app--stack">
+<div class="app">
+    <aside class="rail rail--slim">
+        <a class="rail__brand" href="{{ route('dashboard') }}" aria-label="Lendora — beranda">
+            <x-logo :size="32" />
+        </a>
+
+        @include('partials.rail-nav', ['groups' => $nav])
+
+        <div class="rail__foot">
+            @include('partials.user-menu', ['id' => 'rail'])
+        </div>
+    </aside>
+
     <div class="app__main">
         <header class="topbar">
             <button class="icon-btn rail-toggle" type="button" data-rail-open aria-label="Buka menu">
                 <x-icon name="menu" />
             </button>
-
-            <a class="appbar__brand hide-sm" href="{{ route('dashboard') }}">
-                <x-logo :size="30" />
-                <span class="rail__wordmark"><b>Lendora</b><span>Workbench</span></span>
-            </a>
 
             <div class="topbar__title">
                 <b>@yield('chrome', 'Pekerjaan Saya')</b>
@@ -41,32 +61,25 @@
             @include('partials.user-menu', ['id' => 'top', 'compact' => true])
         </header>
 
-        @if ($mine)
+        @if ($showStatusStrip)
             <nav class="workbar no-print" aria-label="Status pekerjaan">
-                <span class="workbar__label">Pekerjaan</span>
-                <a href="{{ $mine['url'] }}" class="workchip {{ request()->routeIs($mine['match']) && ! request('status') ? 'is-active' : '' }}">
-                    <x-icon name="wrench" /> Semua <b>{{ $mine['count'] ?: 0 }}</b>
+                <span class="workbar__label">Status</span>
+                <a href="{{ $ticketsUrl }}" class="workchip {{ request()->routeIs($ticketsRoute) && ! $activeStatus ? 'is-active' : '' }}">
+                    <x-icon name="wrench" /> Semua <b>{{ array_sum($statusCounts) }}</b>
                 </a>
-                <a href="{{ route('admin.tickets.index', ['status' => 'open']) }}"
-                   class="workchip {{ request('status') === 'open' ? 'is-active' : '' }} workchip--hot">
-                    <x-icon name="alert" /> Menunggu
-                </a>
-                <a href="{{ route('admin.tickets.index', ['status' => 'assigned']) }}"
-                   class="workchip {{ request('status') === 'assigned' ? 'is-active' : '' }}">
-                    <x-icon name="clipboard" /> Ditugaskan
-                </a>
-                <a href="{{ route('admin.tickets.index', ['status' => 'in_progress']) }}"
-                   class="workchip {{ request('status') === 'in_progress' ? 'is-active' : '' }}">
-                    <x-icon name="play" /> Dikerjakan
-                </a>
-                <a href="{{ route('admin.tickets.index', ['status' => 'waiting_parts']) }}"
-                   class="workchip {{ request('status') === 'waiting_parts' ? 'is-active' : '' }}">
-                    <x-icon name="box" /> Menunggu Part
-                </a>
-                <a href="{{ route('admin.tickets.index', ['status' => 'completed']) }}"
-                   class="workchip {{ request('status') === 'completed' ? 'is-active' : '' }} workchip--ok">
-                    <x-icon name="check-circle" /> Selesai
-                </a>
+                @foreach ($statuses as $key => $meta)
+                    @php
+                        $chipClass = 'workchip';
+                        if ($activeStatus === $key) {
+                            $chipClass .= ' is-active';
+                        } elseif ($meta['hot'] && ($statusCounts[$key] ?? 0) > 0) {
+                            $chipClass .= ' workchip--hot';
+                        }
+                    @endphp
+                    <a href="{{ route('admin.tickets.index', ['status' => $key]) }}" class="{{ $chipClass }}">
+                        <x-icon :name="$meta['icon']" /> {{ $meta['label'] }} <b>{{ $statusCounts[$key] ?? 0 }}</b>
+                    </a>
+                @endforeach
             </nav>
         @endif
 

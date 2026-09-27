@@ -24,7 +24,8 @@
 <x-page-head title="Audit Log"
              subtitle="Jejak perubahan data: siapa, kapan, dan objek apa yang diubah. Catatan dibuat otomatis oleh sistem." />
 
-<x-filter-bar :reset="route('admin.audit-logs.index')" search="action"
+<x-filter-bar :keep="['action', 'actor_id', 'subject_type', 'from', 'to']"
+              :reset="route('admin.audit-logs.index')" search="action"
               placeholder="Cari aksi: checkout, approved…">
     <x-slot:controls>
         <x-field name="actor_id" label="Pelaku">
@@ -48,6 +49,18 @@
                         <option value="{{ $class }}" @selected(request('subject_type') === $class)>{{ $label }}</option>
                     @endforeach
                 </select>
+            </x-slot:control>
+        </x-field>
+
+        <x-field name="from" label="Dari Tanggal">
+            <x-slot:control>
+                <input type="date" name="from" id="f-from" data-autosubmit value="{{ request('from') }}">
+            </x-slot:control>
+        </x-field>
+
+        <x-field name="to" label="Sampai Tanggal">
+            <x-slot:control>
+                <input type="date" name="to" id="f-to" data-autosubmit value="{{ request('to') }}">
             </x-slot:control>
         </x-field>
     </x-slot:controls>

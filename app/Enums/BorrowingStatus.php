@@ -2,6 +2,18 @@
 // app/Enums/BorrowingStatus.php
 namespace App\Enums;
 
+/**
+ * Status transaksi peminjaman.
+ *
+ * Alur: pending → approved → borrowed → returned, dengan overdue sebagai
+ * turunan dari borrowed, serta rejected/cancelled sebelum serah-terima.
+ *
+ * Penting: peminjaman lahir dari persetujuan reservasi (App\Actions\
+ * ApproveReservation) langsung pada status Approved — bukan Pending.
+ * Antrean check-out, tombol aksi, dan semua penghitung "siap check-out"
+ * menyaring status ini, jadi memakai nilai lain membuat transaksi terlihat
+ * di daftar namun tidak pernah terhitung.
+ */
 enum BorrowingStatus: string
 {
     case Pending = 'pending';
