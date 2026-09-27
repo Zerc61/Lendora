@@ -40,10 +40,18 @@
         <b>Sedang Dipinjam</b>
         <span>{{ $stats['active'] }} aset aktif</span>
     </a>
-    <a class="quick {{ $stats['overdue'] > 0 ? 'tone-bad' : 'tone-ok' }}" href="{{ route('my.borrowings.index', ['status' => 'overdue']) }}" style="--d:120ms">
+    <a class="quick {{ $stats['overdue'] > 0 ? 'tone-bad' : 'tone-ok' }}"
+       href="{{ route('my.borrowings.index', $stats['overdue'] > 0 ? ['status' => 'overdue'] : []) }}"
+       style="--d:120ms">
         <span class="quick__icon"><x-icon name="clock" /></span>
-        <b>Riwayat Peminjaman</b>
-        <span>{{ $stats['total'] }} transaksi tercatat</span>
+        <b>Tenggat & Riwayat</b>
+        <span>
+            @if ($stats['overdue'] > 0)
+                <b style="color:var(--bad)">{{ $stats['overdue'] }} lewat tenggat</b>
+            @else
+                {{ $stats['total'] }} transaksi · semua aman
+            @endif
+        </span>
     </a>
     <a class="quick tone-muted" href="{{ route('notifications.index') }}" style="--d:180ms">
         <span class="quick__icon"><x-icon name="bell" /></span>

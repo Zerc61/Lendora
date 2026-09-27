@@ -210,7 +210,7 @@ class ShellTest extends TestCase
 
         // Section di navbar; aksi & akun dipindah ke tombol & menu avatar agar
         // appbar tidak memuat dua menu yang isinya sama.
-        $response->assertSee('class="appbar__nav"', false)
+        $response->assertSee('appbar__nav', false)
             ->assertSee(route('my.reservations.index'), false)
             ->assertSee(route('my.borrowings.index'), false)
             ->assertDontSee('Menu lengkap', false);

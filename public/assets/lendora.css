@@ -1770,3 +1770,119 @@ a.quick:hover { transform: translateY(-2px); border-color: var(--border-3); back
   }
   .meter__fill, .spark__bar, .card, .stat, .list__row, .timeline__item, .page-head { animation: none !important; }
 }
+
+/* ==========================================================================
+   SHELL PATCH (borrower) — visibilitas per-perangkat & kerapian desktop.
+   Taruh PALING BAWAH agar menang atas aturan shell sebelumnya.
+   ========================================================================== */
+
+/* ---------- Utility visibilitas per-perangkat ---------- */
+@media (min-width: 1024px) { .only-mobile { display: none !important; } }
+@media (max-width: 1023.98px) { .only-desktop { display: none !important; } }
+
+/* ---------- Appbar ---------- */
+.appbar {
+  min-height: 62px;
+  padding-inline: clamp(14px, 3vw, 28px);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: rgba(18, 23, 34, .86); /* fallback browser lama */
+}
+
+.appbar__burger { display: inline-flex; }
+
+.appbar__brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.appbar__brandname { font-weight: 800; font-size: 15px; letter-spacing: .3px; }
+
+.appbar__body {
+  display: flex; flex-direction: column;
+  min-width: 0; line-height: 1.2;
+}
+.appbar__body b {
+  font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.appbar__body .tiny {
+  color: var(--muted); font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Nav terpusat di antara brand & actions → simetris */
+.appbar__nav {
+  display: flex; align-items: center; gap: 2px;
+  margin-inline: auto;
+}
+.appbar__nav a {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 12px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--muted); white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+.appbar__nav a:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  background: rgba(124, 92, 252, .10); /* fallback */
+}
+.appbar__nav a.is-active,
+.appbar__nav a[aria-current="page"] {
+  color: var(--primary-2);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  background: rgba(124, 92, 252, .16); /* fallback */
+}
+
+.appbar__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ---------- Konten: max-width = kunci kerapian desktop ---------- */
+.app__body {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: clamp(16px, 2.5vw, 28px) clamp(14px, 3vw, 28px) 110px;
+}
+@media (min-width: 1024px) { .app__body { padding-bottom: 48px; } }
+
+/* ---------- FAB (mobile only, duduk DI ATAS bottom nav) ---------- */
+.fab {
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  width: 56px; height: 56px; border-radius: 18px;
+  background: var(--primary);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 12px 28px rgba(124, 92, 252, .4); /* fallback */
+}
+.fab:active { transform: scale(.94); }
+
+/* ---------- Quick actions: 4 → 2 → 1 ---------- */
+.quick-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1023.98px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 379.98px) { .quick-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Dashboard 2 kolom: rapi & runtuh mulus ---------- */
+.grid--main {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+@media (max-width: 1023.98px) { .grid--main { grid-template-columns: 1fr; } }
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: clamp(18px, 2.2vw, 26px) clamp(18px, 2.4vw, 28px);
+  border-radius: 18px;
+  background:
+    radial-gradient(1100px 220px at 0% 0%,
+      color-mix(in srgb, var(--primary) 15%, transparent), transparent 60%),
+    radial-gradient(1100px 220px at 0% 0%, rgba(124, 92, 252, .15), transparent 60%),
+    var(--surface);
+}
+.hero__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+@media (max-width: 639.98px) {
+  .hero__actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .hero__actions .btn:first-child { grid-column: 1 / -1; } /* CTA utama full width */
+}
+
+/* ---------- Touch target mobile ---------- */
+@media (max-width: 1023.98px) { .list__row { min-height: 56px; } }
