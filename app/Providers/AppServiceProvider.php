@@ -28,6 +28,12 @@ class AppServiceProvider extends ServiceProvider
             return $user instanceof User && $user->hasRole('super-admin') ? true : null;
         });
 
+        // PDF 12: HTTPS produksi — URL yang dihasilkan (link email, asset(),
+        // signed URL) harus https kalau app di balik TLS-terminating proxy.
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Audit trail otomatis (PDF 4L)
         Asset::observe(AuditableObserver::class);
         Reservation::observe(AuditableObserver::class);

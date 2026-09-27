@@ -94,7 +94,9 @@ class CheckinBorrowing
         }
 
         $hasPendingOther = Borrowing::whereHas('items', fn ($q) => $q->where('asset_id', $asset->id))
-            ->where('status', BorrowingStatus::Pending->value)
+            // Approved = disetujui tapi unit belum diserahkan. Pending ikut disaring
+            // untuk baris lama. Selama masih ada, unit tidak boleh Available.
+            ->whereIn('status', [BorrowingStatus::Approved->value, BorrowingStatus::Pending->value])
             ->whereKeyNot($current->id)
             ->lockForUpdate()
             ->exists();

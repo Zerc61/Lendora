@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,5 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Permission middleware yang gagal → 403 konsisten (PDF 12: authorization).
+        // Tanpa ini Spatie melempar UnauthorizedException yang bisa berakhir 500.
+        $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, Request $request) {
+            abort(403, 'Anda tidak memiliki izin untuk mengakses halaman/aksi ini.');
+        });
     })->create();

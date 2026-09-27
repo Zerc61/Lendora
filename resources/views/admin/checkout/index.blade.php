@@ -28,7 +28,7 @@
     <x-stat label="Unit di Antrean" :value="$unitAntrean" icon="box" tone="accent"
             :hint="'Halaman ' . $borrowings->currentPage() . ' · ' . $borrowings->count() . ' transaksi'" :delay="60" />
     <x-stat label="Tenggat Terdekat" :value="$pertama?->due_at?->format('d M H:i') ?? '—'" icon="clock" tone="warn"
-            :hint="$pertama ? 'Peminjam <b>' . ($pertama->borrower?->name ?? '—') . '</b>' : 'Antrean kosong'" :delay="120" />
+            :hint="$pertama ? 'Peminjam <b>' . e($pertama->borrower?->name ?? '—') . '</b>' : 'Antrean kosong'" :delay="120" />
     <x-stat label="Batas Terlewat" :value="$lewatBatas" icon="alert" :tone="$lewatBatas > 0 ? 'warn' : 'muted'"
             :hint="$lewatBatas > 0 ? 'Tenggat <b>sudah lewat</b> saat diserahkan' : 'Semua tenggat masih di masa depan'"
             :delay="180" />

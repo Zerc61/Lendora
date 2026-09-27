@@ -30,7 +30,7 @@
     <x-stat label="Terlambat" :value="$terlambatAntrean" icon="alert" :tone="$terlambatAntrean > 0 ? 'bad' : 'muted'"
             :hint="'Dari ' . $borrowings->count() . ' transaksi di halaman ' . $borrowings->currentPage()" :delay="60" />
     <x-stat label="Tenggat Terdekat" :value="$pertama?->due_at?->format('d M H:i') ?? '—'" icon="clock" tone="warn"
-            :hint="$pertama ? 'Peminjam <b>' . ($pertama->borrower?->name ?? '—') . '</b>' : 'Antrean kosong'" :delay="120" />
+            :hint="$pertama ? 'Peminjam <b>' . e($pertama->borrower?->name ?? '—') . '</b>' : 'Antrean kosong'" :delay="120" />
     <x-stat label="Unit Menunggu" :value="$unitAntrean" icon="box" tone="accent"
             :hint="'Perlu diperiksa pada ' . $borrowings->count() . ' transaksi'" :delay="180" />
 </div>
