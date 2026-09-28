@@ -33,6 +33,31 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
         opcache \
         zip
 
+# Opcache diberi setelan produksi yang SERIUS.
+#
+# Alasannya: opcache yang aktif/default saja menyimpan ~128MB opcode, tapi
+# setting ini tetap ditulis eksplisit karena tiga hal:
+#   1. validate_timestamps=0 + revalidate_freq=0 → PHP tidak perlu stat() file
+#      tiap include. Di image container yang read-only, stat ini murni
+#      pemborosan; filenya tidak akan berubah setelah build.
+#   2. max_accelerated_files=30000 → default 10000. Proyek ini punya ~700 file
+#      di vendor + app; sekali lewat batas, opcache diam-diam mulai TIDAK
+#      meng-cache file baru (tidak ada error, hanya melambat).
+#   3. JIT dimatikan. FrankenPHP menjalankan banyak request lewat thread,
+#      dan JIT di ZTS dikenal tidak stabil — nilainya di sini nol karena
+#      bottleneck-nya I/O ke database, bukan CPU.
+# Ukurannya dinaikkan ke 256MB karena image ini 512MB-class dan menyisakan
+# ruang untuk compiled views (60+ blade).
+RUN { \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.memory_consumption=256'; \
+        echo 'opcache.interned_strings_buffer=32'; \
+        echo 'opcache.max_accelerated_files=30000'; \
+        echo 'opcache.validate_timestamps=0'; \
+        echo 'opcache.jit=disable'; \
+        echo 'opcache.jit_buffer_size=0'; \
+    } > /usr/local/etc/php/conf.d/opcache-production.ini
+
 WORKDIR /app
 
 # ============================================================
@@ -65,6 +90,14 @@ COPY . .
 # composer dump-autoload memicu post-autoload-dump, yaitu package:discover —
 # inilah yang membuat stage ini tidak perlu APP_KEY apa pun, karena config
 # sengaja tidak di-cache sehingga env baru terbaca saat runtime.
+# Manifest hasil generate di mesin lokal (packages.php / services.php) TIDAK
+# boleh dipakai di image. packages.php mendaftarkan provider paket yang terpasang
+# di mesin itu — termasuk yang hanya require-dev seperti laravel/pail. Karena
+# vendor di image di-install --no-dev, kelas itu tidak ada, dan package:discover
+# gagal saat memuat manifest basi:
+#   "Class Laravel\Pail\PailServiceProvider not found".
+# Manifest di-regenerate sendiri di baris bawah, jadi menghapusnya di sini aman
+# dan membuat build tidak bergantung pada apa pun yang tertinggal di lokal.
 RUN mkdir -p \
         bootstrap/cache \
         storage/app/public/avatars \
@@ -73,6 +106,7 @@ RUN mkdir -p \
         storage/framework/sessions \
         storage/framework/views \
         storage/logs \
+    && rm -f bootstrap/cache/*.php \
     && composer dump-autoload --no-dev --optimize --no-interaction
 
 # Cache yang TIDAK bergantung pada env runtime — aman di-baked ke image.

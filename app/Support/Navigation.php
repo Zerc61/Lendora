@@ -3,13 +3,9 @@
 namespace App\Support;
 
 use App\Enums\BorrowingStatus;
-use App\Enums\IssueStatus;
 use App\Enums\MaintenanceStatus;
-use App\Enums\ReservationStatus;
-use App\Models\Borrowing;
 use App\Models\Issue;
 use App\Models\MaintenanceTicket;
-use App\Models\Reservation;
 use App\Models\User;
 
 /**
@@ -221,60 +217,80 @@ final class Navigation
     }
 
     // ── Badge counter ────────────────────────────────────────────────────
-    private static function unread(User $user): ?int
+    //
+    // SEMUA badge dihitung sekali per request lewat badges(), bukan sekali per
+    // item menu. Sebelumnya setiap helper di bawah menjalankan COUNT sendiri,
+    // dan karena argumen dievaluasi SEBELUM self::i() menyaring berdasarkan
+    // permission, satu render admin sudah menjalankan 6 COUNT — lalu
+    // bottomnav, notification-btn, dan user-menu (dimuat 2x) memanggilnya
+    // lagi. Total ~13 query per halaman, sebagian besar identik.
+    //
+    // Sekarang: 5 query (dibatasi satu per tabel, lewat GROUP BY status),
+    // di-memoize sehingga panggilan berikutnya pada halaman yang sama gratis.
+    //
+    // PENTING: angka badge disimpan apa adanya, sedangkan penyaringan
+    // permission tetap terjadi di pemanggil (badge()). Dengan begitu tabel
+    // cukup dihitung SEKALI untuk semua peran, dan user tanpa izin tetap
+    // melihat nol — bukan angka antrean yang tidak boleh dia ketahui.
+
+    public static function badges(User $user): array
     {
-        $n = $user->unreadNotifications()->count();
+        // Di-resolve lewat container, bukan static. Instance-nya singleton,
+        // jadi memo-nya hidup selama satu request lalu ikut hilang — inilah
+        // yang membuatnya aman terhadap test, karena rollback database tidak
+        // menyentuh static. Navigation sendiri tidak menyimpan cache.
+        $counts = app(AppCounts::class);
+        $borrowing = $counts->borrowingByStatus();
+
+        return [
+            'unread'      => $counts->unread($user),
+            'reservation' => $counts->reservationPending(),
+            'checkout'    => $borrowing[BorrowingStatus::Approved->value] ?? 0,
+            'checkin'     => ($borrowing[BorrowingStatus::Borrowed->value] ?? 0)
+                + ($borrowing[BorrowingStatus::Overdue->value] ?? 0),
+            'ticket'      => $counts->ticketOpen(),
+            'issue'       => $counts->issueOpen(),
+        ];
+    }
+
+    private static function badge(User $user, string $key, ?string $permission = null): ?int
+    {
+        if ($permission !== null && ! $user->can($permission)) {
+            return null;
+        }
+
+        $n = self::badges($user)[$key] ?? 0;
 
         return $n ?: null;
     }
 
+    private static function unread(User $user): ?int
+    {
+        return self::badge($user, 'unread');
+    }
+
     private static function reservationQueue(User $user): ?int
     {
-        if (! $user->can('reservation.approve')) {
-            return null;
-        }
-
-        return Reservation::where('status', ReservationStatus::Pending->value)->count() ?: null;
+        return self::badge($user, 'reservation', 'reservation.approve');
     }
 
     private static function checkoutQueue(User $user): ?int
     {
-        if (! $user->can('checkout.perform')) {
-            return null;
-        }
-
-        return Borrowing::where('status', BorrowingStatus::Approved->value)->count() ?: null;
+        return self::badge($user, 'checkout', 'checkout.perform');
     }
 
     private static function checkinQueue(User $user): ?int
     {
-        if (! $user->can('checkin.perform')) {
-            return null;
-        }
-
-        return Borrowing::whereIn('status', [BorrowingStatus::Borrowed->value, BorrowingStatus::Overdue->value])->count() ?: null;
+        return self::badge($user, 'checkin', 'checkin.perform');
     }
 
     private static function ticketQueue(User $user): ?int
     {
-        if (! $user->can('maintenance.view')) {
-            return null;
-        }
-
-        return MaintenanceTicket::whereIn('status', [
-            MaintenanceStatus::Open->value,
-            MaintenanceStatus::Assigned->value,
-            MaintenanceStatus::InProgress->value,
-            MaintenanceStatus::WaitingParts->value,
-        ])->count() ?: null;
+        return self::badge($user, 'ticket', 'maintenance.view');
     }
 
     private static function issueQueue(User $user): ?int
     {
-        if (! $user->can('issue.view')) {
-            return null;
-        }
-
-        return Issue::whereIn('status', [IssueStatus::Open->value, IssueStatus::Investigating->value])->count() ?: null;
+        return self::badge($user, 'issue', 'issue.view');
     }
 }

@@ -29,3 +29,5 @@ Thumbs.db
 
 # stub otomatis dari "php artisan serve"
 /api/index.php
+.vercel
+.env*

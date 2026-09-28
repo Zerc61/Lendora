@@ -3,6 +3,11 @@
 @php
     $user = auth()->user();
     $nav = \App\Support\Navigation::for($user);
+    // Hitung sekali, pakai ulang untuk seluruh partial di bawah. undistinct:
+    // user-menu di-include 2x dan notification-btn sekali — sebelumnya
+    // ketiganya menghitung unread sendiri (3 query identik per halaman).
+    $unread = \App\Support\Navigation::badges($user)['unread'];
+    $recentNotifications = $user->notifications()->latest()->limit(5)->get();
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -20,7 +25,7 @@
         @include('partials.rail-nav', ['groups' => $nav])
 
         <div class="rail__foot">
-            @include('partials.user-menu', ['id' => 'rail'])
+            @include('partials.user-menu', ['id' => 'rail', 'user' => $user, 'unread' => $unread])
         </div>
     </aside>
 
@@ -69,8 +74,8 @@
                 </div>
             @endif
 
-            @include('partials.notification-btn', ['id' => 'top'])
-            @include('partials.user-menu', ['id' => 'top', 'compact' => true])
+            @include('partials.notification-btn', ['id' => 'top', 'unread' => $unread, 'recent' => $recentNotifications])
+            @include('partials.user-menu', ['id' => 'top', 'compact' => true, 'user' => $user, 'unread' => $unread])
         </header>
 
         <div class="ops-strip no-print">

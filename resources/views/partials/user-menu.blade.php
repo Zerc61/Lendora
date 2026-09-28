@@ -1,7 +1,10 @@
-{{-- resources/views/partials/user-menu.blade.php — dropdown akun pengguna --}}
+{{-- resources/views/partials/user-menu.blade.php — dropdown akun pengguna
+
+     Layout admin me-include partial ini DUA kali (rail + topbar); $unread
+     dihitung sekali di layout lalu diteruskan. --}}
 @php
-    $user = auth()->user();
-    $unread = $user->unreadNotifications()->count();
+    $user = $user ?? auth()->user();
+    $unread = $unread ?? \App\Support\Navigation::badges($user)['unread'];
     $menuId = 'user-menu-' . ($id ?? 'top');
 @endphp
 <div class="menu-anchor">

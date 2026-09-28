@@ -11,6 +11,7 @@ use App\Models\MaintenanceTicket;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Observers\AuditableObserver;
+use App\Support\AppCounts;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -18,7 +19,13 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        // Singleton, bukan static: container dibangun ulang tiap request dan
+        // tiap test, sehingga memo AppCounts ikut hilang otomatis dan TIDAK
+        // bisa membaca angka dari database test sebelumnya.
+        $this->app->singleton(AppCounts::class);
+    }
 
     public function boot(): void
     {
@@ -27,9 +34,22 @@ class AppServiceProvider extends ServiceProvider
         Paginator::defaultSimpleView('pagination::lendora');
 
         // Super Admin lolos semua authorization (PDF bag. 3)
+        //
+        // hasRole() dipanggil sekali per user per request lalu di-memoize.
+        // Tanpa ini callback ini berjalan untuk SETIAP can() — layout admin
+        // saja memicu puluhan — dan tiap pem_callan memicu relasi roles.
         Gate::before(function ($user, string $ability) {
-            return $user instanceof User && $user->hasRole('super-admin') ? true : null;
+            static $superAdmin = null;
+
+            if ($superAdmin === null) {
+                $superAdmin = $user instanceof User && $user->hasRole('super-admin');
+            }
+
+            return $superAdmin ? true : null;
         });
+
+        // (Memo badge navigasi tidak perlu flush manual — AppCounts adalah
+        //  singleton container yang mati bersama request.)
 
         // PDF 12: HTTPS produksi — URL yang dihasilkan (link email, asset(),
         // signed URL) harus https kalau app di balik TLS-terminating proxy.

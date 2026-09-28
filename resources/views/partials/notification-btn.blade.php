@@ -1,6 +1,10 @@
-{{-- resources/views/partials/notification-btn.blade.php — tombol lonceng + dot unread --}}
+{{-- resources/views/partials/notification-btn.blade.php — tombol lonceng + dot unread
+
+     Angka unread & 5 notifikasi terbaru bolehDILEWATI dari layout sebagai
+     ['unread' => …, 'recent' => …] supaya tidak dihitung ulang per include.
+     Fallback di bawah menjaga partial tetap aman bila di-include sendirian. --}}
 @php
-    $unread = auth()->user()->unreadNotifications()->count();
+    $unread = $unread ?? \App\Support\Navigation::badges(auth()->user())['unread'];
     $bellId = 'bell-menu-' . ($id ?? 'top');
 @endphp
 <div class="menu-anchor">
@@ -14,7 +18,7 @@
             <b>Notifikasi</b>
             <span>{{ $unread ? $unread . ' belum dibaca' : 'Semua sudah dibaca' }}</span>
         </div>
-        @php $recent = auth()->user()->notifications()->limit(5)->get(); @endphp
+        @php $recent = $recent ?? auth()->user()->notifications()->latest()->limit(5)->get(); @endphp
         @forelse ($recent as $notification)
             <a class="menu__item" href="{{ route('notifications.index') }}">
                 <x-icon :name="$notification->data['tone'] ?? 'bell'" />

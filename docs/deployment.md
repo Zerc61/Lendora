@@ -156,7 +156,7 @@ penting ada di sini.
 |---|---|
 | `Dockerfile.vercel` | 3 stage (`base` → `dependencies` → `runtime`), FrankenPHP 1 / PHP 8.4, non-root |
 | `Caddyfile` | Listen di `:{$PORT:80}`, document root `public/`, front controller ke `index.php` |
-| `vercel.json` | Service `app` dengan `runtime: container` + rewrite catch-all |
+| `vercel.json` | Service `app` dengan `runtime: container` + rewrite catch-all, `regions: ["sin1"]` |
 | `.dockerignore` | Mencegah `.env`, `vendor/`, `node_modules/`, dan `*.sqlite` masuk image |
 
 > **Tidak ada stage frontend.** Proyek ini sengaja tanpa build step: seluruh UI
@@ -168,6 +168,30 @@ Cache yang di-baked saat build: `event:cache`, `route:cache`, `view:cache`.
 `config:cache` **tidak** dijalankan — Vercel menyuntikkan `APP_KEY` dan
 kredensial DB saat container start, bukan saat build, jadi config harus dibaca
 per-request.
+
+### 10.1a ⚠️ Region WAJIB `sin1` — ini pengukur latency terbesar
+
+`vercel.json` mengunci `regions: ["sin1"]`. Jangan dihapus tanpa alasan.
+
+Latar belakang yang terukur: database Aiven untuk proyek ini ada di
+**Singapura**, sedangkan default Vercel untuk project baru adalah
+**iad1 (Washington D.C.)**. Lintas Samudra itu mengukur **~60ms per query** —
+`SELECT 1` yang tidak membaca data sama sekali sudah membutuhkan waktu itu.
+
+Karena latensi digandakan dengan jumlah query, dua perbaikan ini saling
+mengalikan dan keduanya wajib:
+
+| Faktor | Sebelum | Sesudah |
+|---|---|---|
+| Round-trip per query | ~60ms (iad1 → Singapura) | ~1–3ms (sin1 → Singapura) |
+| Query per render dashboard admin | 56 | 25 |
+| Total render dashboard admin | **~7,2 detik** | **~0,3 detik** |
+
+Untuk memverifikasi region benar-benar terpakai, cek tab **Resources** di
+deployment summary — di sana akan tampil `sin1`.
+
+Kalau database nanti pindah ke region lain, `regions` di `vercel.json` harus
+ikut diubah ke region terdekat. Kalau tidak, seluruh penurunan ini kembali.
 
 ### 10.2 Environment variables di Vercel
 
@@ -227,6 +251,13 @@ DB_HOST=... php artisan db:seed --class=RolePermissionSeeder --force
 
 Ulangi setiap kali ada migration baru di `main`.
 
+> **WAJIB: jalankan `php artisan migrate --force` untuk**
+> `2026_09_28_000000_add_performance_indexes.php` bila belum jalan. Index itu
+> menutup `unreadNotifications()->count()` (dijalankan di setiap halaman) dan
+> kolom `checked_out_at` / `returned_at` yang sebelumnya full-table-scan di
+> staff dashboard. Tanpa migration ini, perbaikan query tetap ada tapi
+> `"type" => "ALL"` di EXPLAIN.
+
 ### 10.4 ⚠️ Penyimpanan bersifat efemera — foto akan hilang
 
 Filesystem container di-reset pada setiap deploy. Semua file yang diunggah —
@@ -257,6 +288,36 @@ AWS_USE_PATH_STYLE_ENDPOINT=true
 Bucket **wajib publik-read** untuk `public`-style disk, atau pasang
 `FILESYSTEM_DISK` terpisah + signed URL. Tanpa langkah ini, fitur upload foto
 pada aplikasi akan tampak berfungsi di satu deploy lalu lenyap di deploy berikutnya.
+
+### 10.4a Query budget per request
+
+Dengan `regions: ["sin1"]`, database hanya ~1–3ms per round-trip, dan
+sekarang **jumlah query**, bukan latensi, yang menentukan kecepatan halaman.
+
+Sebagai jaring pengaman, anggaran kasar untuk render authenticated:
+
+| Halaman | Anggaran |
+|---|---|
+| Dashboard admin | ≤ 25 query |
+| Halaman list admin | ≤ 12 query |
+| Halaman borrower (mobile) | ≤ 10 query |
+
+Kalau sebuah halaman melewati anggarannya, almost always penyebabnya salah
+satu dari tiga: relation yang diakses di dalam loop tanpa `with()`, angka
+badge/ringkasan yang dihitung di lebih dari satu tempat, atau `->get()` tanpa
+paginasi.
+
+Cara mengukur (tidak perlu log server):
+
+```php
+// di test, sementara
+DB::listen(fn ($q) => logger()->info($q->sql, ['ms' => $q->time]));
+```
+
+Tiga sumber angka global — `AppCounts` (`app/Support/AppCounts.php`) —
+sengaja dipakai bersama oleh dashboard dan badge navigasi, karena keduanya
+memerlukan hitungan yang sama. Kalau suatu saat butuh angka baru, tambahkan
+di sana, jangan dihitung ulang di controller dan di view.
 
 ### 10.5 Catatan teknis
 
