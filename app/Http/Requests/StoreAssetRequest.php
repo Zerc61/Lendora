@@ -1,10 +1,10 @@
 <?php
+
 // app/Http/Requests/StoreAssetRequest.php
 
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreAssetRequest extends FormRequest
 {

@@ -43,9 +43,9 @@ animasi, dan aturan penulisan view.
 
 ## Kebutuhan Sistem
 
-- PHP **8.3+** (ekstensi: `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `fileinfo`)
+- PHP **8.3+** (ekstensi: `pdo_pgsql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `fileinfo`)
 - Composer 2
-- MySQL 8 / MariaDB 10.6+
+- PostgreSQL 16+ (produksi: Neon — lihat `docs/deployment.md`)
 
 > **Tidak ada build front-end.** CSS & JS served statis dari `public/assets`
 > (lihat `public/assets/lendora.css`). `npm install` / `vite build` tidak diperlukan.
@@ -57,12 +57,11 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# buat database
-mysql -u root -e "CREATE DATABASE lendora CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -e "CREATE USER 'lendora_user'@'localhost' IDENTIFIED BY 'lendora_123';
-                  GRANT ALL PRIVILEGES ON lendora.* TO 'lendora_user'@'localhost'; FLUSH PRIVILEGES;"
+# buat database PostgreSQL lokal (opsional — alternatif: pakai koneksi Neon)
+createdb lendora 2>/dev/null || true
+psql -d lendora -c "CREATE USER lendora_user WITH PASSWORD 'lendora_123'; GRANT ALL PRIVILEGES ON DATABASE lendora TO lendora_user;" 2>/dev/null || true
 
-# sesuaikan DB_* di .env
+# sesuaikan DB_* di .env (contoh koneksi Neon ada di docs/deployment.md)
 php artisan migrate --seed
 ```
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EducationLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
@@ -78,14 +77,23 @@ class UserController extends Controller
     private function roleCounts(): array
     {
         // Satu query: hitung per role lewat pivot, bukan 5 query terpisah.
+        //
+        // Agregatnya WAJIB diberi alias. pluck() membaca properti hasil query
+        // memakai nama kolom itu apa adanya, jadi pluck(DB::raw('count(*)'), …)
+        // berakhir mengakses $row->{'count(*)'} yang tidak pernah ada →
+        // "Undefined property: stdClass::$count(*)". Bug ini bukan soal dialect,
+        // dia gagal di driver apa pun. pluck() juga men-strip prefix tabel dari
+        // key, jadi 'roles.name' terbaca sebagai 'name'.
         $tallies = DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
             ->join('users', 'users.id', '=', 'model_has_roles.model_id')
             ->whereNull('users.deleted_at')
             ->where('model_has_roles.model_type', User::class)
             ->whereIn('roles.name', self::ROLE_TABS)
+            ->select('roles.name')
+            ->selectRaw('count(*) as total')
             ->groupBy('roles.name')
-            ->pluck(DB::raw('count(*)'), 'roles.name');
+            ->pluck('total', 'name');
 
         $out = [];
         foreach (self::ROLE_TABS as $role) {
@@ -117,7 +125,7 @@ class UserController extends Controller
         $user->assignRole($request->validated('role'));
 
         if ($request->hasFile('photo')) {
-            $user->update(['photo_path' => $request->file('photo')->store('avatars', 'public')]);
+            $user->update(['photo_path' => $request->file('photo')->store('avatars')]);
         }
 
         return redirect()
@@ -169,11 +177,11 @@ class UserController extends Controller
     private function replacePhoto(User $user, Request $request): void
     {
         if ($user->photo_path) {
-            Storage::disk('public')->delete($user->photo_path);
+            Storage::delete($user->photo_path);
         }
 
         $user->update([
-            'photo_path' => $request->file('photo')->store('avatars', 'public'),
+            'photo_path' => $request->file('photo')->store('avatars'),
         ]);
     }
 

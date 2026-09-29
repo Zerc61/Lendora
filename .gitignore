@@ -31,3 +31,9 @@ Thumbs.db
 /api/index.php
 .vercel
 .env*
+.neon
+
+# tooling harness lokal (bukan bagian aplikasi)
+/.agents
+/neon.ts
+/skills-lock.json

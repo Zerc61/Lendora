@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/Admin/OrganizationController.php
 
 namespace App\Http\Controllers\Admin;
@@ -7,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrganizationRequest;
 use App\Http\Requests\UpdateOrganizationRequest;
 use App\Models\Organization;
-use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {

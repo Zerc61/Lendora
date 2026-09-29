@@ -1,5 +1,7 @@
 <?php
+
 // app/Support/Navigation.php
+
 namespace App\Support;
 
 use App\Enums\BorrowingStatus;
@@ -236,20 +238,24 @@ final class Navigation
     public static function badges(User $user): array
     {
         // Di-resolve lewat container, bukan static. Instance-nya singleton,
-        // jadi memo-nya hidup selama satu request lalu ikut hilang — inilah
-        // yang membuatnya aman terhadap test, karena rollback database tidak
-        // menyentuh static. Navigation sendiri tidak menyimpan cache.
+        // dan memo-nya dibuang setiap request selesai (AppServiceProvider
+        // mendengarkan RequestHandled — framework testing memakai satu
+        // container untuk banyak request/percobaan, jadi tanpa flush itu memo
+        // membaca angka database dari test/request sebelumnya). Di balik memo,
+        // AppCounts juga menyimpan hasilnya di cache lintas request dengan TTL
+        // 45 dtk (keputusan pengguna: badge boleh basi sejenak demi mengurangi
+        // round-trip). Navigation sendiri tidak menyimpan cache.
         $counts = app(AppCounts::class);
         $borrowing = $counts->borrowingByStatus();
 
         return [
-            'unread'      => $counts->unread($user),
+            'unread' => $counts->unread($user),
             'reservation' => $counts->reservationPending(),
-            'checkout'    => $borrowing[BorrowingStatus::Approved->value] ?? 0,
-            'checkin'     => ($borrowing[BorrowingStatus::Borrowed->value] ?? 0)
+            'checkout' => $borrowing[BorrowingStatus::Approved->value] ?? 0,
+            'checkin' => ($borrowing[BorrowingStatus::Borrowed->value] ?? 0)
                 + ($borrowing[BorrowingStatus::Overdue->value] ?? 0),
-            'ticket'      => $counts->ticketOpen(),
-            'issue'       => $counts->issueOpen(),
+            'ticket' => $counts->ticketOpen(),
+            'issue' => $counts->issueOpen(),
         ];
     }
 

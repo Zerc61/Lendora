@@ -19,6 +19,8 @@ class UserSeeder extends Seeder
             ['name' => 'Staff Perpus', 'email' => 'staff@lendora.test', 'role' => 'staff'],
             ['name' => 'Teknisi Lab', 'email' => 'teknisi@lendora.test', 'role' => 'technician'],
             ['name' => 'Budi Pratama', 'email' => 'budi@lendora.test', 'role' => 'borrower'],
+            ['name' => 'Anjar', 'email' => 'anjar@lendora.test', 'role' => 'borrower'],
+            ['name' => 'Alfian', 'email' => 'alfian@lendora.test', 'role' => 'borrower'],
         ];
 
         foreach ($users as $u) {

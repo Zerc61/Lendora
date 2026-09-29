@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/Admin/AssetAttachmentController.php
 
 namespace App\Http\Controllers\Admin;
@@ -17,7 +18,7 @@ class AssetAttachmentController extends Controller
         $this->authorize('update', $asset);
 
         $file = $request->file('file');
-        $path = $file->store("attachments/{$asset->id}", 'public');
+        $path = $file->store("attachments/{$asset->id}");
 
         $asset->attachments()->create([
             'uploaded_by' => auth()->id(),
@@ -38,7 +39,7 @@ class AssetAttachmentController extends Controller
     {
         $this->authorize('update', $attachment->asset);
 
-        Storage::disk('public')->delete($attachment->file_path);
+        Storage::delete($attachment->file_path);
         $attachment->delete();
 
         return back()->with('success', 'Attachment dihapus.');

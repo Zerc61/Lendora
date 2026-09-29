@@ -2,10 +2,11 @@
 
 // app/database/migrations — index untuk query yang jalan di SETIAP render.
 //
-// Konteks: DB Aiven di Singapore, ~60ms per round-trip. Setiap query yang
-// memindai tabel penuh tidak hanya satu round-trip, tapi 60ms UTUH untuk
-// data yang mestinya dibaca dari index. Semua index di bawah dipilih dari
-// EXPLAIN pada query yang benar-benar ada di controller/view, bukan tebakan.
+// Konteks: DB produksi (Neon PostgreSQL, region Singapura) dan aplikasi full
+// scan terjadi di SETIAP render. Query yang memindai tabel penuh tidak hanya
+// satu round-trip, tapi satu round-trip UTUH untuk data yang mestinya dibaca
+// dari index. Semua index di bawah dipilih dari EXPLAIN pada query yang
+// benar-benar ada di controller/view, bukan tebakan.
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

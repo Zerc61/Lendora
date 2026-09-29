@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/DashboardController.php
 
 namespace App\Http\Controllers;
@@ -45,37 +46,38 @@ class DashboardController extends Controller
         // Semua angka lewat AppCounts: 1 GROUP BY per tabel, di-memoize, dan
         // BERBAGI dengan badge navigasi yang butuh data persis sama.
         // Sebelumnya baris di bawah menjalankan 22 COUNT, lalu layout
-        // menjalankan ~6 lagi untuk angka yang identik — 28 round-trip ke
-        // Aiven (~60ms masing-masing) untuk data yang cukup dalam 5.
+        // menjalankan ~6 lagi untuk angka yang identik — 28 round-trip ke DB
+        // untuk data yang cukup dibaca dalam 5. Yang mahal adalah jumlah
+        // round-trip, bukan biaya query (lihat PERF.md).
         $counts = app(AppCounts::class);
         $assetStatus = $counts->assetByStatus();
         $borrowing = $counts->borrowingByStatus();
         $badges = Navigation::badges($user);
 
         $stats = [
-            'total'        => array_sum($assetStatus),
-            'available'    => $assetStatus[AssetStatus::Available->value] ?? 0,
-            'reserved'     => $assetStatus[AssetStatus::Reserved->value] ?? 0,
-            'borrowed'     => $assetStatus[AssetStatus::Borrowed->value] ?? 0,
-            'unhealthy'    => ($assetStatus[AssetStatus::Maintenance->value] ?? 0)
+            'total' => array_sum($assetStatus),
+            'available' => $assetStatus[AssetStatus::Available->value] ?? 0,
+            'reserved' => $assetStatus[AssetStatus::Reserved->value] ?? 0,
+            'borrowed' => $assetStatus[AssetStatus::Borrowed->value] ?? 0,
+            'unhealthy' => ($assetStatus[AssetStatus::Maintenance->value] ?? 0)
                 + ($assetStatus[AssetStatus::Damaged->value] ?? 0)
                 + ($assetStatus[AssetStatus::Lost->value] ?? 0),
             'reservations' => $badges['reservation'],
-            'pending'      => $borrowing[BorrowingStatus::Pending->value] ?? 0,
-            'active'       => $borrowing[BorrowingStatus::Borrowed->value] ?? 0,
+            'pending' => $borrowing[BorrowingStatus::Pending->value] ?? 0,
+            'active' => $borrowing[BorrowingStatus::Borrowed->value] ?? 0,
             // Overdue tetap query sendiri: status 'overdue' hanya di-set oleh
             // scheduler harian, sedangkan dashboard harus langsung mencerminkan
             // due_at yang sudah lewat tanpa menunggu scheduler.
-            'overdue'      => Borrowing::where('status', BorrowingStatus::Borrowed->value)
+            'overdue' => Borrowing::where('status', BorrowingStatus::Borrowed->value)
                 ->whereNotNull('due_at')->where('due_at', '<', now())->count(),
-            'issues'       => $badges['issue'],
-            'tickets'      => $badges['ticket'],
+            'issues' => $badges['issue'],
+            'tickets' => $badges['ticket'],
         ];
 
         $statusDistribution = collect(AssetStatus::cases())
             ->map(fn ($s) => [
                 'status' => $s,
-                'count'  => $assetStatus[$s->value] ?? 0,
+                'count' => $assetStatus[$s->value] ?? 0,
             ]);
 
         $conditionCounts = $counts->assetByCondition();
@@ -83,7 +85,7 @@ class DashboardController extends Controller
         $condition = collect(AssetCondition::cases())
             ->map(fn ($c) => [
                 'condition' => $c,
-                'count'     => $conditionCounts[$c->value] ?? 0,
+                'count' => $conditionCounts[$c->value] ?? 0,
             ]);
 
         // Skor kondisi rata-rata (dihitung di PHP agar bebas dari keyword SQL "condition")
@@ -93,24 +95,24 @@ class DashboardController extends Controller
             : 0;
 
         return view('admin.dashboard', [
-            'user'               => $user,
-            'stats'              => $stats,
-            'availabilityRate'   => $stats['total'] ? (int) round($stats['available'] / $stats['total'] * 100) : 0,
-            'overdueRate'        => $stats['active'] ? (int) round($stats['overdue'] / $stats['active'] * 100) : 0,
-            'healthScore'        => $stats['total'] ? max(0, 100 - (int) round($stats['unhealthy'] / $stats['total'] * 100)) : 0,
-            'averageCondition'   => $averageCondition,
+            'user' => $user,
+            'stats' => $stats,
+            'availabilityRate' => $stats['total'] ? (int) round($stats['available'] / $stats['total'] * 100) : 0,
+            'overdueRate' => $stats['active'] ? (int) round($stats['overdue'] / $stats['active'] * 100) : 0,
+            'healthScore' => $stats['total'] ? max(0, 100 - (int) round($stats['unhealthy'] / $stats['total'] * 100)) : 0,
+            'averageCondition' => $averageCondition,
             'statusDistribution' => $statusDistribution,
             'conditionDistribution' => $condition,
-            'trend'              => $reports->borrowingTrend(),
+            'trend' => $reports->borrowingTrend(),
             // with('assetType') WAJIB: view memakai $asset->assetType->name, tanpa
-        // eager loading itu 1 query per baris (5 query utuh untuk 5 baris).
-        'topAssets'          => Asset::with('assetType')
+            // eager loading itu 1 query per baris (5 query utuh untuk 5 baris).
+            'topAssets' => Asset::with('assetType')
                 ->withCount('borrowingItems')
                 ->orderByDesc('borrowing_items_count')
                 ->limit(5)
                 ->get(),
-            'recentIssues'       => Issue::with('asset')->latest()->limit(5)->get(),
-            'recentTickets'      => MaintenanceTicket::with('asset')->latest()->limit(5)->get(),
+            'recentIssues' => Issue::with('asset')->latest()->limit(5)->get(),
+            'recentTickets' => MaintenanceTicket::with('asset')->latest()->limit(5)->get(),
         ]);
     }
 
@@ -140,24 +142,24 @@ class DashboardController extends Controller
         $badges = Navigation::badges($user);
 
         return view('staff.dashboard', [
-            'user'        => $user,
-            'toCheckout'  => $toCheckout,
-            'toCheckin'   => $toCheckin,
+            'user' => $user,
+            'toCheckout' => $toCheckout,
+            'toCheckin' => $toCheckin,
             'reservations' => $pendingReservations,
-            'stats'       => [
-                'checkout'      => $badges['checkout'],
-                'checkin'       => $badges['checkin'],
-                'overdue'       => Borrowing::where('status', BorrowingStatus::Overdue->value)
+            'stats' => [
+                'checkout' => $badges['checkout'],
+                'checkin' => $badges['checkin'],
+                'overdue' => Borrowing::where('status', BorrowingStatus::Overdue->value)
                     ->orWhere(fn ($q) => $q->where('status', BorrowingStatus::Borrowed->value)->whereNotNull('due_at')->where('due_at', '<', now()))
                     ->count(),
-                'reservations'  => $badges['reservation'],
+                'reservations' => $badges['reservation'],
                 // whereDate() mengcompile jadi DATE(col) = ? — fungsi membungkus
                 // KOLOM, jadi tidak ada index yang bisa dipakai dan MySQL jatuh
                 // ke full table scan. Rentang setengah-terbuka setara hasilnya
                 // dan tetap sargable.
-                'today'         => Borrowing::where('checked_out_at', '>=', $dayStart)
+                'today' => Borrowing::where('checked_out_at', '>=', $dayStart)
                     ->where('checked_out_at', '<', $dayEnd)->count(),
-                'returned'      => Borrowing::where('returned_at', '>=', $dayStart)
+                'returned' => Borrowing::where('returned_at', '>=', $dayStart)
                     ->where('returned_at', '<', $dayEnd)->count(),
             ],
         ]);
@@ -185,14 +187,14 @@ class DashboardController extends Controller
             ->count();
 
         return view('technician.dashboard', [
-            'user'   => $user,
+            'user' => $user,
             'tickets' => $mine,
-            'stats'  => [
-                'mine'         => MaintenanceTicket::where('technician_id', $user->id)->count(),
-                'in_progress'  => $inProgress,
+            'stats' => [
+                'mine' => MaintenanceTicket::where('technician_id', $user->id)->count(),
+                'in_progress' => $inProgress,
                 'waiting_parts' => MaintenanceTicket::where('technician_id', $user->id)
                     ->where('status', MaintenanceStatus::WaitingParts->value)->count(),
-                'unassigned'   => MaintenanceTicket::whereNull('technician_id')
+                'unassigned' => MaintenanceTicket::whereNull('technician_id')
                     ->where('status', MaintenanceStatus::Open->value)->count(),
             ],
             'issues' => Issue::with('asset')
@@ -205,8 +207,8 @@ class DashboardController extends Controller
     private function borrower($user)
     {
         return view('borrower.dashboard', [
-            'user'          => $user,
-            'reservations'  => Reservation::with('items')
+            'user' => $user,
+            'reservations' => Reservation::with('items')
                 ->where('user_id', $user->id)
                 ->whereIn('status', [ReservationStatus::Pending->value, ReservationStatus::Approved->value])
                 ->latest()
@@ -216,19 +218,19 @@ class DashboardController extends Controller
                 ->whereIn('status', [BorrowingStatus::Approved->value, BorrowingStatus::Borrowed->value, BorrowingStatus::Overdue->value])
                 ->latest()
                 ->limit(5)->get(),
-            'history'       => Borrowing::with('items')
+            'history' => Borrowing::with('items')
                 ->where('borrower_id', $user->id)
                 ->where('status', BorrowingStatus::Returned->value)
                 ->latest()
                 ->limit(4)->get(),
-            'stats'         => [
-                'active'    => Borrowing::where('borrower_id', $user->id)
+            'stats' => [
+                'active' => Borrowing::where('borrower_id', $user->id)
                     ->whereIn('status', [BorrowingStatus::Borrowed->value, BorrowingStatus::Overdue->value])->count(),
-                'overdue'   => Borrowing::where('borrower_id', $user->id)
+                'overdue' => Borrowing::where('borrower_id', $user->id)
                     ->where('status', BorrowingStatus::Overdue->value)->count(),
                 'reservasi' => Reservation::where('user_id', $user->id)
                     ->whereIn('status', [ReservationStatus::Pending->value, ReservationStatus::Approved->value])->count(),
-                'total'     => Borrowing::where('borrower_id', $user->id)->count(),
+                'total' => Borrowing::where('borrower_id', $user->id)->count(),
             ],
         ]);
     }

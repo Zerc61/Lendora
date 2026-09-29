@@ -13,12 +13,19 @@ return [
     | incoming requests. Laravel supports a variety of storage options to
     | persist session data. Database storage is a great default choice.
     |
+    | Lendora memakai COOKIE, bukan database: session database menambah
+    | 2 round-trip ke Neon per request (~160 ms dari Jakarta) hanya untuk
+    | membaca & menulis baris yang dibutuhkan sesaat. Cookie menyimpan
+    | payload (id user, CSRF, flash) di browser — aman untuk multi-instance
+    | (Vercel menyebar request ke banyak container) dan tidak menambah query.
+    | Batasan cookie ~4 KB masih jauh dari muatan session Lendora.
+    |
     | Supported: "file", "cookie", "database", "memcached",
     |            "redis", "dynamodb", "array"
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'cookie'),
 
     /*
     |--------------------------------------------------------------------------

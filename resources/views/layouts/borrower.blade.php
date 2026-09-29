@@ -5,7 +5,6 @@
     $user = auth()->user();
     $nav = \App\Support\Navigation::for($user);
     $primary = \App\Support\Navigation::primary($user);
-    $unread = $user->unreadNotifications()->count();
 
     // Navbar desktop: hanya section. Ajukan/Scan = tombol aksi;
     // Notifikasi & Profil tinggal di menu avatar.

@@ -23,8 +23,45 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- pdo_sqlite tidak selalu tersedia; suite ini memakai database MySQL terpisah. -->
-        <env name="DB_CONNECTION" value="mysql"/>
+        <!-- Storage default = disk `public`, sama dengan .env lokal. Upload
+             foto/lampiran memakai disk default (TAHAP G), jadi test harus
+             menulis dan membaca di disk yang sama dengan yang dibaca
+             assertion Storage::disk('public')->assertExists(). -->
+        <env name="FILESYSTEM_DISK" value="public"/>
+        <!-- Driver WAJIB sama dengan produksi. Aplikasi berjalan di Neon
+             PostgreSQL; suite yang jalan di MySQL tidak pernah mengeksekusi
+             SQL yang sama dengan yang dipakai user, jadi bug dialek lolos
+             begitu saja. pdo_sqlite juga tidak tersedia di environment ini.
+
+             DB_HOST di sini menunjuk BRANCH `test` Neon
+             (ep-lively-credit-…-pooler), bukan branch `production`. Ini bukan
+             sekadar beda nama database: `RefreshDatabase` menjalankan
+             migrate:fresh yang menghapus SELURUH isi database target. Selama
+             host-nya sama dengan produksi, satu migration yang salah di CI
+             berarti data produksi ikut terhapus — dan dua run paralel saling
+             menabrak di database yang sama. Branch terpisah menutup dua-duanya.
+
+             DB_USERNAME/DB_PASSWORD sengaja TIDAK ditulis di sini: branch Neon
+             mewarisi role & kredensial dari parent, jadi dibaca dari .env, dan
+             tidak perlu diduplikasi (atau bocor) lewat file yang di-commit.
+
+             branch `test` dibuat 2026-09-28. Kalau branch itu dihapus, buat
+             ulang (Neon console → Branches → New, parent `production`) lalu
+             ganti DB_HOST di sini dengan endpoint barunya.
+
+             Catatan override: entri <env> TANPA force="true" TIDAK menimpa
+             variabel yang sudah ada di environment proses. Jadi
+             `DB_HOST=… php artisan test` tetap menang, dan CI bebas
+             mengarahkan ke branch sendiri tanpa mengubah file ini.
+
+             tests/TestCase.php punya DUA penjaga, keduanya diuji di
+             tests/Feature/TestDatabaseGuardTest.php: nama database harus
+             berakhiran `_test` (guard 1), dan host tidak boleh sama dengan
+             host produksi di .env (guard 2 — wajib, karena `lendora_test` juga
+             ada di branch produksi sehingga guard 1 lolos begitu saja). -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_HOST" value="ep-lively-credit-b3vg4b5u-pooler.c-4.ap-southeast-1.aws.neon.tech"/>
+        <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="lendora_test"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>

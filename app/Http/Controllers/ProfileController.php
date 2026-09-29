@@ -1,9 +1,9 @@
 <?php
+
 // app/Http/Controllers/ProfileController.php
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePasswordRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,9 +29,11 @@ class ProfileController extends Controller
         ]);
 
         // Hapus foto lama (dan file-nya) bila diminta atau diganti.
+        // Disk default (FILESYSTEM_DISK) — satu sumber kebenaran dengan
+        // photoUrl()/hasPhoto() di User.
         if ($request->boolean('remove_photo')) {
             if ($user->photo_path) {
-                Storage::disk('public')->delete($user->photo_path);
+                Storage::delete($user->photo_path);
             }
             $user->update(['photo_path' => null]);
 
@@ -40,10 +42,10 @@ class ProfileController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($user->photo_path) {
-                Storage::disk('public')->delete($user->photo_path);
+                Storage::delete($user->photo_path);
             }
             $user->update([
-                'photo_path' => $request->file('photo')->store('avatars', 'public'),
+                'photo_path' => $request->file('photo')->store('avatars'),
             ]);
 
             return back()->with('success', 'Foto profil berhasil diperbarui.');

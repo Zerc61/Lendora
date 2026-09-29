@@ -12,6 +12,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Observers\AuditableObserver;
 use App\Support\AppCounts;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -21,9 +22,13 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Singleton, bukan static: container dibangun ulang tiap request dan
-        // tiap test, sehingga memo AppCounts ikut hilang otomatis dan TIDAK
-        // bisa membaca angka dari database test sebelumnya.
+        // Singleton, bukan static — layout/sidebar memanggil Navigation::badges()
+        // berkali-kali dalam satu request dan memo AppCounts menahan hasilnya.
+        // Tapi ingat: asal "satu instance hidup satu request" HANYA berlaku di
+        // web (PHP menghidupkan container sekali per HTTP request). Framework
+        // testing memakai satu container untuk SELURUH proses dan untuk banyak
+        // request di dalam satu test, jadi memo harus di-flush per request —
+        // lihat RequestHandled di boot().
         $this->app->singleton(AppCounts::class);
     }
 
@@ -48,8 +53,23 @@ class AppServiceProvider extends ServiceProvider
             return $superAdmin ? true : null;
         });
 
-        // (Memo badge navigasi tidak perlu flush manual — AppCounts adalah
-        //  singleton container yang mati bersama request.)
+        // Memo badge navigasi ikut dibuang saat request selesai.
+        //
+        // Mengapa perlu: AppCounts di-bind sebagai singleton container, dan
+        // asumsi "satu container = satu request" benar untuk web biasa tapi
+        // TIDAK untuk framework testing — Laravel memakai satu container untuk
+        // seluruh proses PHPUnit dan untuk banyak request dalam satu test.
+        // Tanpa flush ini, test seperti "persetujuan menaikkan angka siap
+        // check-out" gagal: request pertama menghitung angka lalu
+        // menyimpannya di memo, request kedua (setelah data berubah) kembali
+        // membaca angka basi. RequestHandled dikirim oleh HttpKernel untuk
+        // SETIAP request — termasuk yang berakhir exception — sehingga ini
+        // membuat perilaku test sama dengan produksi: memo hidup tepat satu
+        // request.
+        $this->app['events']->listen(
+            RequestHandled::class,
+            fn () => $this->app->forgetInstance(AppCounts::class),
+        );
 
         // PDF 12: HTTPS produksi — URL yang dihasilkan (link email, asset(),
         // signed URL) harus https kalau app di balik TLS-terminating proxy.

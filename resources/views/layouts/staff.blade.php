@@ -7,6 +7,10 @@
     $out = $queue['admin.checkout.index'] ?? null;
     $in = $queue['admin.checkin.index'] ?? null;
     $res = $queue['admin.reservations.index'] ?? null;
+    // Hitung sekali, teruskan — user-menu (2x) & notification-btn memakai
+    // angka yang sama lewat partial, jadi tidak ada yang menghitung ulang.
+    $unread = \App\Support\Navigation::badges($user)['unread'];
+    $recentNotifications = $user->notifications()->latest()->limit(5)->get();
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -24,7 +28,7 @@
         @include('partials.rail-nav', ['groups' => $nav])
 
         <div class="rail__foot">
-            @include('partials.user-menu', ['id' => 'rail'])
+            @include('partials.user-menu', ['id' => 'rail', 'user' => $user, 'unread' => $unread])
         </div>
     </aside>
 
@@ -45,8 +49,8 @@
                 <a class="btn btn--accent hide-xs" href="{{ route('scan') }}"><x-icon name="scan" /> Scan QR</a>
             @endcan
 
-            @include('partials.notification-btn', ['id' => 'top'])
-            @include('partials.user-menu', ['id' => 'top', 'compact' => true])
+            @include('partials.notification-btn', ['id' => 'top', 'unread' => $unread, 'recent' => $recentNotifications])
+            @include('partials.user-menu', ['id' => 'top', 'compact' => true, 'user' => $user, 'unread' => $unread])
         </header>
 
         <nav class="workbar no-print" aria-label="Antrean kerja">

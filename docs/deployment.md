@@ -7,8 +7,13 @@ Semua perintah dijalankan dari root aplikasi kecuali dinyatakan lain.
 
 ## 1. Persiapan server
 
-Kebutuhan minimum: PHP 8.3+, Composer 2, MySQL 8+/MariaDB 10.6+, Nginx/Apache,
-dan akses `crontab` (scheduler wajib — lihat §5).
+Kebutuhan minimum: PHP 8.4+, Composer 2, **PostgreSQL 15+** (produksi memakai
+Neon PostgreSQL 18), Nginx/FrankenPHP, dan akses `crontab` (scheduler wajib —
+lihat §5).
+
+> Section §1–§9 ini untuk VPS sendiri. Kalau deploy ke Vercel container, lewati
+> langsung ke §10 dan ignore semua instruksi MySQL/backup di bawah — dokumen ini
+> pernah ditulis untuk Aiven MySQL dan sudah tidak lagi cocok dengan produksi.
 
 ```bash
 git clone <repo-anda> /var/www/lendora && cd /var/www/lendora
@@ -87,17 +92,25 @@ php artisan schedule:list
 
 ## 6. Backup database (PDF 12)
 
-Cron harian pukul 02.00, simpan terkompresi, rotasi 7 hari:
+Neon sudah menyediakan backup otomatis dan *point-in-time recovery* untuk
+branch produksi — **jangan** menulis cron `pg_dump` di bawah ini untuk Neon,
+karena itu hanya menambah satu salinan lagi tanpa memberi recovery point.
 
-```
-0 2 * * * mysqldump -u lendora_user -p'PASSWORD' lendora | gzip > /var/backups/lendora-$(date +\%F).sql.gz
-0 3 * * * find /var/backups -name "lendora-*.sql.gz" -mtime +7 -delete
+Kalau memang butuh dump manual (mis. sebelum migrasi berisiko):
+
+```bash
+# pg_dump dari mesin lokal, lewat pooler. Password dibaca dari prompt, jangan
+# ditaruh di dalam crontab — file crontab world-readable di beberapa distro.
+PGPASSWORD=pg_dump -h ep-small-thunder-b362f0n6-pooler.c-4.ap-southeast-1.aws.neon.tech \
+  -U neondb_owner -d neondb --format=custom \
+  > /var/backups/lendora-$(date +\%F).dump
+0 3 * * * find /var/backups -name "lendora-*.dump" -mtime +7 -delete
 ```
 
 > Jangan hard-delete histori. Backup + restore **diuji berkala** — backup yang
 > belum pernah diuji restore belum dianggap ada.
-> Opsional (P2): `composer require spatie/laravel-backup` untuk backup otomatis
-> ke S3/disk lain.
+> Restore diuji ke branch terpisah, bukan ke produksi: `pg_restore` ke branch
+> `neondb` akan menimpa data asli.
 
 ## 7. Monitoring
 
@@ -161,8 +174,14 @@ penting ada di sini.
 
 > **Tidak ada stage frontend.** Proyek ini sengaja tanpa build step: seluruh UI
 > adalah `public/assets/lendora.css` & `lendora.js` yang ditulis tangan, dimuat
-> di `resources/views/partials/head.blade.php`. Tidak ada view memakai `@vite`,
-> dan `package-lock.json` pun tidak ada — sehingga `npm ci` pasti gagal di build.
+> di `resources/views/partials/head.blade.php`. Tidak ada view memakai `@vite`
+> (0 match di `resources/views/` dan `app/`).
+>
+> `package-lock.json` **ada** di repo (2.503 baris) — yang tidak ada adalah view
+> yang memakainya. `composer setup` tetap menjalankan `npm run build`, tapi
+> hasilnya (`public/build`) tidak pernah dirujuk siapa pun dan di-exclude lewat
+> `.dockerignore`. Jalankan `composer setup` untuk development; di produksi
+> `npm` tidak perlu dijalankan sama sekali.
 
 Cache yang di-baked saat build: `event:cache`, `route:cache`, `view:cache`.
 `config:cache` **tidak** dijalankan — Vercel menyuntikkan `APP_KEY` dan
@@ -173,19 +192,35 @@ per-request.
 
 `vercel.json` mengunci `regions: ["sin1"]`. Jangan dihapus tanpa alasan.
 
-Latar belakang yang terukur: database Aiven untuk proyek ini ada di
-**Singapura**, sedangkan default Vercel untuk project baru adalah
-**iad1 (Washington D.C.)**. Lintas Samudra itu mengukur **~60ms per query** —
-`SELECT 1` yang tidak membaca data sama sekali sudah membutuhkan waktu itu.
+Latar belakang yang terukur: database Neon untuk proyek ini ada di
+**aws-ap-southeast-1 (Singapura)** — region `c-4`, endpoint
+`…-pooler.c-4.ap-southeast-1.aws.neon.tech` — sedangkan default Vercel untuk
+project baru adalah **iad1 (Washington D.C.)**. Lintas Samudra itu mengukur
+puluhan milidetik per query; `SELECT 1` yang tidak membaca data sama sekali
+sudah butuh waktu itu.
 
 Karena latensi digandakan dengan jumlah query, dua perbaikan ini saling
 mengalikan dan keduanya wajib:
 
 | Faktor | Sebelum | Sesudah |
 |---|---|---|
-| Round-trip per query | ~60ms (iad1 → Singapura) | ~1–3ms (sin1 → Singapura) |
 | Query per render dashboard admin | 56 | 25 |
 | Total render dashboard admin | **~7,2 detik** | **~0,3 detik** |
+
+> **Jangan percaya angka "~0,3 detik" tanpa mengukur ulang dari `sin1`.** Yang
+> diukur dalam audit ini adalah `SELECT 1` dari mesin lokal (region Jakarta →
+> Singapura): **~80 ms per round-trip**, dan **~79 ms** lewat host `-pooler` —
+> nyaris sama, karena PHP membuka koneksi baru tiap request sehingga pooler
+> tidak ada gunanya di sini. Angka itu **bukan** representasi Vercel `sin1`,
+> dan jarak ke `iad1` yang dulu jadi alasan utama region ini dikunci **tidak
+> pernah terukur** (default Vercel saat dokumen ini ditulis sudah `sin1`).
+>
+> Yang terukur dan bisa dipertanggungjawabkan: latency **dominan di jumlah
+> round-trip, bukan di biaya query** — ±20 query terpanas semuanya 0,04–0,55 ms
+> di sisi server, sementara ~90% waktu tempuh request habis di jaringan.
+> Reducing round-trip count tetap levers yang benar. Arahkan `regions` dan
+> ukur ulang dari deployment sungguhan sebelum menyimpulkan angka Critique
+> latency. Lihat PERF.md.
 
 Untuk memverifikasi region benar-benar terpakai, cek tab **Resources** di
 deployment summary — di sana akan tampil `sin1`.
@@ -206,20 +241,46 @@ APP_KEY=base64:<dari "php artisan key:generate --show">
 # di-generate (CSS/JS dan <form action>) jadi http:// dan halamannya rusak.
 APP_URL=https://lendora-two.vercel.app
 
-DB_CONNECTION=mysql
-DB_HOST=<host Aiven>
-DB_PORT=3306
-DB_DATABASE=defaultdb
-DB_USERNAME=avnadmin
+# Neon PostgreSQL. WAJIB PostgreSQL: Dockerfile.vercel hanya meng-install
+# pdo_pgsql, dan sebagian query di app/ memakai dialek PostgreSQL
+# (EXTRACT/EPOCH, TO_CHAR). Kalau diisi mysql, aplikasi gagal boot dengan
+# "could not find driver" — bukan cuma halaman tertentu.
+DB_CONNECTION=pgsql
+# Host POOLER. Kalau host direct (tanpa -pooler) dipakai bersamaan dengan
+# banyak instance Vercel, koneksi akan habis.
+DB_HOST=ep-small-thunder-b362f0n6-pooler.c-4.ap-southeast-1.aws.neon.tech
+DB_PORT=5432
+DB_DATABASE=neondb
+DB_USERNAME=neondb_owner
 DB_PASSWORD=<password>
+# TLS. Default config/database.php sudah `require` untuk APP_ENV != local,
+# jadi baris ini opsional. Isi hanya untuk mengetatkan:
+#   DB_SSLMODE=verify-full
+#   DB_SSLROOTCERT=system
+DB_SSLMODE=require
 
 # Behind proxy — agar $request->secure() true (cookie sesi & middleware is_secure)
+#
+# WAJIB berpasangan dengan SESSION_SECURE_COOKIE=true. Diperiksa dengan request
+# http:// yang membawa X-Forwarded-Proto: https — persis kondisi di Vercel,
+# karena hop internal Vercel → container itu plain HTTP:
+#   TRUSTED_PROXIES kosong -> $request->secure() = FALSE
+#   TRUSTED_PROXIES=*     -> $request->secure() = true
+# Kalau yang pertama terjadi DAN SESSION_SECURE_COOKIE=true, cookie sesi
+# tidak pernah dikirim balik: user terjebak mengulang login terus.
+# (Dockerfile.vercel sudah menyetel kedua env ini sebagai default, jadi
+#  deploy tetap aman walau dashboard lupa diisi.)
 TRUSTED_PROXIES=*
 SESSION_SECURE_COOKIE=true
 SESSION_HTTP_ONLY=true
 SESSION_SAME_SITE=lax
 
 LOG_LEVEL=warning
+
+# ⚠️ PENTING: jangan pernah memakai env produksi di cmd ini untuk menjalankan
+# test. Ganti DB_DATABASE menjadi `lendora_test` DAN DB_HOST ke branch `test`
+# (lihat §10.7). RefreshDatabase menghapus seluruh isi database target, jadi
+# nama `_test` saja tidak cukup — `lendora_test` juga ada di branch produksi.
 ```
 
 > **`APP_URL` dan `TRUSTED_PROXIES` itu dua hal berbeda.** `APP_URL` menentukan
@@ -235,14 +296,15 @@ sudah memblokirnya.
 ### 10.3 Migration
 
 `Dockerfile.vercel` sengaja **tidak** menjalankan `php artisan migrate`. Database
-Aiven adalah sistem eksternal; menjalankannya di dalam build membuat image gagal
+Neon adalah sistem eksternal; menjalankannya di dalam build membuat image gagal
 bila DB tidak terjangkau dari runner.
 
 Jalankan sekali dari mesin lokal:
 
 ```bash
-DB_HOST=<host Aiven> DB_PORT=3306 DB_DATABASE=defaultdb \
-DB_USERNAME=avnadmin DB_PASSWORD=<password> \
+DB_HOST=ep-small-thunder-b362f0n6-pooler.c-4.ap-southeast-1.aws.neon.tech \
+DB_PORT=5432 DB_DATABASE=neondb \
+DB_USERNAME=neondb_owner DB_PASSWORD=<password> \
 php artisan migrate --force
 
 # sekali saja, kalau tabel roles/permissions masih kosong
@@ -264,16 +326,39 @@ Filesystem container di-reset pada setiap deploy. Semua file yang diunggah —
 foto profil siswa (`storage/app/public/avatars`) dan lampiran aset
 (`…/attachments`) — **hilang** begitu ada deployment baru.
 
-`SESSION_DRIVER`, `CACHE_STORE`, dan `QUEUE_CONNECTION` aman karena ketiganya
-sudah `database`, bukan file.
+`SESSION_DRIVER`, `CACHE_STORE`, dan `QUEUE_CONNECTION` aman karena tidak ada
+yang menyimpan data di filesystem container: session di-cookie (TAHAP C),
+cache & queue di database.
 
-Solusinya: pindahkan ke object storage (S3 / Cloudflare R2 / Supabase Storage).
+> #### ✅ `FILESYSTEM_DISK` — TAHAP G selesai
+>
+> Semua operasi storage di `app/` kini memakai **disk default**, bukan disk
+> `'public'` yang di-hardcode:
+>
+> | File | Perubahan |
+> |---|---|
+> | `app/Http/Controllers/ProfileController.php` | `store('avatars')` & `Storage::delete()` — default disk |
+> | `app/Http/Controllers/Admin/UserController.php` | `store('avatars')` & `Storage::delete()` — default disk |
+> | `app/Http/Controllers/Admin/AssetAttachmentController.php` | `store("attachments/{id}")` & `Storage::delete()` — default disk |
+> | `app/Models/User.php` | `photoUrl()`/`hasPhoto()` — `Storage::url()` default disk, tanpa stat filesystem |
+>
+> Dengan begitu menyetel `FILESYSTEM_DISK=s3` di Vercel **berfungsi**: unggahan
+> mengikuti disk default. Lokal memakai `FILESYSTEM_DISK=public` (perilaku
+> development tidak berubah; diserve lewat symlink `public/storage`).
+>
+> Catatan tambahan: disk `s3` di `config/filesystems.php` memakai key
+> `'visibility'`, sedangkan `league/flysystem-aws-s3-v3` mengharapkan
+> `'visibility' => 'public'` pada konfigurasi disk — penyesuaian konfigurasi
+> tetap diperlukan, bukan hanya kode aplikasinya.
+>
+> **Status: kode selesai (TAHAP G).** Yang tersisa hanyalah konfigurasi di
+> dashboard Vercel di bawah — tidak bisa diverifikasi dari repo.
+
+Setelah kodenya diubah, konfigurasi Vercel-nya:
 
 ```bash
 composer require league/flysystem-aws-s3-v3
 ```
-
-Lalu di Vercel:
 
 ```env
 FILESYSTEM_DISK=s3
@@ -291,8 +376,13 @@ pada aplikasi akan tampak berfungsi di satu deploy lalu lenyap di deploy berikut
 
 ### 10.4a Query budget per request
 
-Dengan `regions: ["sin1"]`, database hanya ~1–3ms per round-trip, dan
-sekarang **jumlah query**, bukan latensi, yang menentukan kecepatan halaman.
+Karena `regions: ["sin1"]` reasonably dekat dengan database, latency per
+round-trip sudah turun drastis dan **jumlah query** menjadi penentu utama
+kecepatan halaman. Angka "~1–3ms" yang pernah tertulis di sini tidak pernah
+terukur dari `sin1` — lihat catatan di §10.1a. Yang benar-benar terukur: semua
+query terpanas 0,04–0,55 ms di sisi server, sementara ~90% waktu tempuh request
+habis di jaringan. Jadi mengurangi jumlah round-trip tetap levers yang benar,
+tapi jangan memakai angka latency yang tak terukur sebagai acuan.
 
 Sebagai jaring pengaman, anggaran kasar untuk render authenticated:
 
@@ -302,7 +392,7 @@ Sebagai jaring pengaman, anggaran kasar untuk render authenticated:
 | Halaman list admin | ≤ 12 query |
 | Halaman borrower (mobile) | ≤ 10 query |
 
-Kalau sebuah halaman melewati anggarannya, almost always penyebabnya salah
+Kalau sebuah halaman melewati anggarannya, hampir selalu penyebabnya salah
 satu dari tiga: relation yang diakses di dalam loop tanpa `with()`, angka
 badge/ringkasan yang dihitung di lebih dari satu tempat, atau `->get()` tanpa
 paginasi.
@@ -318,6 +408,84 @@ Tiga sumber angka global — `AppCounts` (`app/Support/AppCounts.php`) —
 sengaja dipakai bersama oleh dashboard dan badge navigasi, karena keduanya
 memerlukan hitungan yang sama. Kalau suatu saat butuh angka baru, tambahkan
 di sana, jangan dihitung ulang di controller dan di view.
+
+### 10.4b Database uji — branch Neon `test`
+
+Test suite memakai `RefreshDatabase`, yang menjalankan `migrate:fresh`:
+seluruh isi database target dihapus. Karena itu test **tidak boleh** pernah
+menunjuk branch produksi.
+
+Dua lapis penjaga, keduanya aktif:
+
+| Lapis | Yang dijaga | Di mana |
+|---|---|---|
+| 1 | Nama database harus berakhiran `_test` | `tests/TestCase.php` → `guardTestDatabaseIsDisposable()` |
+| 2 | Host tidak boleh sama dengan host produksi | `tests/TestCase.php` → `guardTestDatabaseIsNotProduction()` |
+
+Lapis 2 ini perlu karena `lendora_test` **juga ada di branch produksi**. Lapis 1
+lolos begitu saja, padahal `migrate:fresh` menyapu seluruh branch — 707 user
+produksi ikut terhapus. Keduanya diuji di `tests/Feature/TestDatabaseGuardTest.php`.
+
+Branch `test` dibuat 2026-09-28 di project Neon yang sama, region sama:
+
+```
+ep-lively-credit-b3vg4b5u-pooler.c-4.ap-southeast-1.aws.neon.tech
+```
+
+Branch itu mewarisi data parent (termasuk `lendora_test`) dan mewarisi role &
+kredensial yang sama, jadi `phpunit.xml` cukup menunjuk host-nya — username dan
+password tetap dibaca dari `.env` dan tidak perlu diduplikasi di file yang
+di-commit.
+
+Untuk menjalankan test dengan branch lain (mis. milik CI):
+
+```bash
+DB_HOST=<endpoint-branch-ci> DB_DATABASE=lendora_test_ci vendor/bin/phpunit
+```
+
+Entri `<env>` di `phpunit.xml` sengaja **tanpa** `force="true"`, jadi variabel
+yang sudah ada di environment proses menang. Sudah diverifikasi: `DB_HOST` dari
+shell tidak ditimpa phpunit.xml.
+
+Kalau branch `test` dihapus: buat ulang di Neon console (**Branches → New**,
+parent `production`), lalu ganti `DB_HOST` di `phpunit.xml` dengan endpoint
+baru. Kredensial tidak berubah — branch mewarisi role parent.
+
+### 10.4c Proteksi branch `test` + timezone aplikasi
+
+**Proteksi branch `test` — DIBLOKIR PAKET FREE (per 2026-09-29).** Upaya
+mengaktifkan proteksi dilakukan via Neon API:
+
+- `update_branch protected=true` pada `br-wispy-sun-b343qpnf` → **HTTP 422**:
+  *"maximum number of protected branches for your current plan"*.
+- `update_project settings.allowed_ips` → **HTTP 400**: `max: "0"` entry untuk
+  paket free.
+
+Per [dokumentasi Neon](https://neon.com/docs/guides/protected-branches):
+protected branches hanya tersedia di paket berbayar (**Launch** ≤ 2,
+**Scale** ≤ 5), dan IP Allow butuh paket **Scale**. Org ini berlangganan
+**free** (`org-orange-frost-29574925`, `plan: free`).
+
+Implikasi keamanan saat ini:
+
+- Branch `test` dan `production` sama-sama publik (hostname + role + password
+  cukup untuk konek dari mana pun). `/tmp/…` jangan dianggap terlindungi.
+- Setelah upgrade ke paket yang mendukung, langkah yang sudah disiapkan:
+  1. `update_branch` `br-wispy-sun-b343qpnf` → `protected: true`.
+  2. `update_project settings.allowed_ips` →
+     `{ ips: ["182.8.97.118", "182.8.100.16"], protected_branches_only: true }`.
+  3. Catatan: IP pengembang bersifat **dinamis** (berubah 182.8.100.16 →
+     182.8.97.118 antar sesi). Saat IP berubah, tambahkan IP baru ke allowlist
+     atau `phpunit` gagal konek ke branch `test`.
+  4. Jangan pernah set `protected_branches_only: false` — itu membatasi **semua**
+     branch termasuk produksi, dan egress IP Vercel dinamis → produksi putus.
+
+**Timezone.** `config/app.php` memakai `env('APP_TIMEZONE', 'Asia/Jakarta')` —
+default `Asia/Jakarta` (WIB), selaras dengan `APP_LOCALE=id` dan nilai
+`APP_TIMEZONE` di `.env`/`.env.example`. Nilai ini hanya mengubah cara aplikasi
+menginterpretasikan/memformat waktu; data timestamp tetap disimpan PostgreSQL
+sebagai UTC (bagian app/ menulis `now()` / Carbon, yang di database menjadi
+timestamptz). Tampilan tanggal memakai `Carbon::locale('id')`.
 
 ### 10.5 Catatan teknis
 
@@ -342,9 +510,20 @@ di sana, jangan dihitung ulang di controller dan di view.
 - **`intl` bukan opsional.** Tanpa extension ini,
   `Carbon::locale('id')->translatedFormat()` jatuh ke fallback Inggris dan
   tanggal tampil sebagai "September 2026" alih-alih "Sep 2026".
-- **Jumlah koneksi database.** Setiap instance Vercel = satu koneksi MySQL
-  tambahan. Kalau Aiven mulai menolak koneksi, tambahkan connection pooler
-  (mis. ProxySQL) di depan Aiven.
+- **Jumlah koneksi database.** Setiap instance Vercel = satu koneksi database
+  tambahan. `.env` §10.2 memakai host **pooler** Neon
+  (`…-pooler.c-4…`) yang memang untuk ini; kalau wechsel ke host langsung
+  (`ep-…` tanpa `-pooler`) bersamaan dengan jumlah instance, itu akan kehabisan
+  koneksi. Jangan set `DB_URL` yang menunjuk host non-pooler di produksi.
+- **`pdo_pgsql`, bukan `pdo_mysql`.** Image hanya memasang `pdo_pgsql`. Kalau
+  `DB_CONNECTION` diisi `mysql`, aplikasi gagal boot "could not find driver".
+  Bagian app/ juga memakai SQL khusus PostgreSQL (`EXTRACT(EPOCH …)`,
+  `TO_CHAR`), jadi driver MySQL bukan cuma ekstensi yang hilang — query-nya
+  juga salah.
+- **`public/storage` dibuat sebagai symlink saat build**, bukan lewat
+  `php artisan storage:link` (yang butuh env runtime). Tanpa ini
+  `Storage::disk('public')->url()` tetap menghasilkan URL yang tampak benar
+  tapi file-nya 404 — tidak ada error di log.
 - **Scheduler tidak jalan sendiri.** `php artisan schedule:run` tiap menit (§5)
   tidak dieksekusi Vercel, dan in-process scheduler mati bersama container.
   Dua opsi:
@@ -356,8 +535,11 @@ di sana, jangan dihitung ulang di controller dan di view.
 
   Tanpa salah satu, fitur tandai peminjaman terlambat, kedaluwarsa reservasi,
   dan pengingat akan mati diam-diam.
-- **Preview deployment.** Setiap push branch dapat URL sendiri dengan database
-  Aiven yang sama. Jangan pakai data produksi untuk pengujian fitur.
+- **Preview deployment.** Setiap push branch dapat URL sendiri, dan secara
+  default memakai database yang **sama** dengan produksi. Jangan pakai data
+  produksi untuk pengujian fitur: satu migration salah di preview = data
+  produksi ikut berubah. Set `DB_DATABASE` per-branch ke database uji, atau
+  nonaktifkan preview deployment untuk project ini.
 
 ### 10.6 Troubleshooting: halaman tanpa gaya + "Formulir tidak aman"
 

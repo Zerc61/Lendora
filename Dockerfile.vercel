@@ -7,8 +7,12 @@
 #   TIDAK ADA stage frontend. Proyek ini sengaja tanpa build step — seluruh UI
 #   adalah CSS/JS tulis-tangan yang dilayani langsung dari public/assets/
 #   (public/assets/lendora.css & lendora.js, dimuat di partials/head.blade.php).
-#   Tidak ada view memakai @vite dan package-lock.json juga tidak ada, jadi
-#   `npm ci` pasti gagal di build.
+#   Tidak ada view memakai @vite (0 match di resources/views + app/), dan
+#   `npm run build` hanya menghasilkan public/build yang tidak pernah dirujuk
+#   siapa pun. Karena itu image ini TIDAK menjalankan npm sama sekali.
+#   (package-lock.json sebenarnya ADA di repo — 2.503 baris. Yang tidak ada
+#   adalah view yang memakainya. Jalankan `npm run build` di lokal hanya menambah
+#   public/build yang tidak dirujuk; lihat PERF.md §Vite.)
 #
 # Yang TIDAK boleh ada di sini:
 #   - COPY .env*            → kredensial masuk image & GitHub
@@ -23,9 +27,14 @@
 FROM dunglas/frankenphp:1-php8.4-bookworm AS base
 
 # php.ini-production: memory_limit & error reporting sesuai produksi.
+# pdo_pgsql, bukan pdo_mysql: database produksi Lendora adalah Neon
+# PostgreSQL (docs/deployment.md §10.2). Tanpa ekstensi ini seluruh aplikasi
+# gagal boot dengan "could not find driver" — bukan hanya halaman tertentu.
+# app/ juga memakai SQL khusus PostgreSQL (EXTRACT(EPOCH …), TO_CHAR), jadi
+# MySQL bukan hanya soal ekstensi — query-nya juga tidak akan jalan.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && install-php-extensions \
-        pdo_mysql \
+        pdo_pgsql \
         intl \
         gd \
         exif \
@@ -66,7 +75,7 @@ WORKDIR /app
 FROM base AS dependencies
 
 # Composer ikut di image ini (bukan stage terpisah) supaya install berjalan di
-# atas PHP 8.4 + pdo_mysql + intl yang sama persis dengan runtime. Kalau memakai
+# atas PHP 8.4 + pdo_pgsql + intl yang sama persis dengan runtime. Kalau memakai
 # image composer:2, versi PHP-nya bisa berbeda sehingga pemeriksaan platform
 # composer bisa gagal, padahal kebutuhan sistemnya sebenarnya sudah terpenuhi.
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -133,14 +142,52 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
 
 # Default produksi. Env dari Vercel mengoverride nilai-nilai ini, jadi aman
 # meski lupa menyetel APP_DEBUG lewat dashboard.
+#
+# SESSION_DRIVER=cookie (TAHAP C): session database = 2 round-trip ke Neon per
+# request hanya untuk payload yang muat di cookie (~160 ms dari Jakarta).
+# Cookie aman untuk multi-instance Vercel dan tidak butuh tabel sessions.
+#
+# SESSION_SECURE_COOKIE=true sebagai default, bukan sekadar anjuran di docs:
+# cookie sesi yang tidak ditandai Secure bisa dikirim lewat koneksi http:// dan
+# dicuri di jaringan. Menyetelnya di dashboard tapi/default di sini berarti
+# deploy tanpa env lengkap tetap aman.
 ENV PORT=80 \
     APP_ENV=production \
     APP_DEBUG=false \
     APP_RUNTIME=FrankenPHP \
+    APP_TIMEZONE=Asia/Jakarta \
     LOG_CHANNEL=stderr \
+    LOG_LEVEL=warning \
     CACHE_STORE=database \
-    SESSION_DRIVER=database \
+    SESSION_DRIVER=cookie \
+    SESSION_SECURE_COOKIE=true \
+    SESSION_HTTP_ONLY=true \
+    SESSION_SAME_SITE=lax \
+    TRUSTED_PROXIES=* \
     QUEUE_CONNECTION=database
+
+# Catatan untuk yang mengedit: TRUSTED_PROXIES sengaja ditulis TANPA tanda kutip.
+# Nilai yang dibutuhkan persis `*`, karena bootstrap/app.php membandingkan
+# $trusted === '*' sebelum mem-parse jadi daftar IP. Kalau Docker menyimpan
+# kutipnya, nilainya jadi literal '*' (tiga karakter) dan trustProxies()
+# menerima satu "IP" yang tidak pernah match — proxy jadi tidak dipercaya tanpa
+# error. ENV tidak melewati shell, jadi `*` polos aman dari globbing.
+
+# public/storage → storage/app/public.
+#
+# Tanpa symlink ini, Storage::disk('public')->url() tetap menghasilkan
+# /storage/avatars/… (URL-nya benar), tapi file di belakang URL itu tidak ada
+# karena .dockerignore mengecualikan /public/storage dari build context. Gejalanya
+# avatar rusak: HTML-nya valid, request-nya 404. Tidak ada error di log aplikasi.
+#
+# Dibuat sebagai symlink, bukan `php artisan storage:link`, supaya tidak
+# bergantung pada artisan yang butuh env runtime (dan tidak gagal di build saat
+# APP_KEY belum disuntikkan).
+# chown -h (bukan -R): target /app/storage/app/public sudah milik www-data dari
+# `COPY --chown` di atas; yang perlu di-chown hanya symlink-nya sendiri, karena
+# `ln` di RUN ini dijalankan sebagai root.
+RUN ln -sfn /app/storage/app/public /app/public/storage \
+    && chown -h www-data:www-data /app/public/storage
 
 USER www-data
 

@@ -62,14 +62,38 @@ class QueryBudgetTest extends TestCase
         return array_column($this->queries, 'sql');
     }
 
+    /**
+     * Bungkus nama identifier persis seperti grammar driver yang aktif.
+     *
+     * MySQL memakai backtick, PostgreSQL memakai double quote. Test ini
+     * sebelumnya mem-hardcode backtick, dan begitu suite dipindah ke
+     * PostgreSQL seluruh pencocokan itu jadi tidak cocok — filter tidak
+     * menyaring apa pun dan N+1 tidak pernah terdeteksi, sementara test-nya
+     * sendiri tetap hijau. Itu lebih buruk daripada tidak ada test.
+     */
+    private function quoted(string $identifier): string
+    {
+        $char = DB::connection()->getDriverName() === 'pgsql' ? '"' : '`';
+
+        return $char.$identifier.$char;
+    }
+
     /** Query SELECT dari tabel aplikasi, buang query infrastructure. */
     private function appQueries(array $sqls): array
     {
+        $infrastructure = ['migrations', 'cache', 'sessions'];
+
         return array_values(array_filter(
             $sqls,
-            fn ($sql) => ! str_contains($sql, '`migrations`')
-                && ! str_contains($sql, '`cache`')
-                && ! str_contains($sql, '`sessions`')
+            function (string $sql) use ($infrastructure) {
+                foreach ($infrastructure as $table) {
+                    if (str_contains($sql, $this->quoted($table))) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
         ));
     }
 
@@ -139,7 +163,7 @@ class QueryBudgetTest extends TestCase
 
         $assetTypes = array_filter(
             $sqls,
-            fn ($sql) => str_contains($sql, '`asset_types`') && ! str_contains($sql, 'count(')
+            fn ($sql) => str_contains($sql, $this->quoted('asset_types')) && ! str_contains($sql, 'count(')
         );
 
         $this->assertLessThanOrEqual(
@@ -167,9 +191,14 @@ class QueryBudgetTest extends TestCase
 
         $sqls = $this->queriesFor('/dashboard', $user);
 
+        // Pola "select … from <asset_types> where <asset_types>.<id> = ?".
+        // Dipakai pola longgar (id-nya tidak di-anchor) karena yang dicari
+        // adalah ULANGNYA query per baris, bukan bentuk persis SQL-nya.
+        $table = preg_quote($this->quoted('asset_types'), '/');
+
         $perRow = array_filter(
             $sqls,
-            fn ($sql) => (bool) preg_match('/`asset_types` where `asset_types`.`id` = \?/', $sql)
+            fn ($sql) => (bool) preg_match('/'.$table.' where '.$table.'\..*id.* = \?/', $sql)
         );
 
         $this->assertSame(

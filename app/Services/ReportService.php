@@ -1,4 +1,5 @@
 <?php
+
 // app/Services/ReportService.php
 
 namespace App\Services;
@@ -32,13 +33,13 @@ class ReportService
         $base = $this->borrowingsQuery($from, $to, $userId, $assetId);
 
         return [
-            'total_pengajuan'    => (clone $base)->count(),
-            'disetujui'          => (clone $base)->whereIn('status', [BorrowingStatus::Approved->value, BorrowingStatus::Borrowed->value, BorrowingStatus::Returned->value])->count(),
-            'ditolak'            => (clone $base)->where('status', BorrowingStatus::Rejected->value)->count(),
-            'selesai_kembali'    => (clone $base)->where('status', BorrowingStatus::Returned->value)->count(),
-            'masih_berjalan'     => (clone $base)->whereIn('status', [BorrowingStatus::Borrowed->value, BorrowingStatus::Overdue->value])->count(),
+            'total_pengajuan' => (clone $base)->count(),
+            'disetujui' => (clone $base)->whereIn('status', [BorrowingStatus::Approved->value, BorrowingStatus::Borrowed->value, BorrowingStatus::Returned->value])->count(),
+            'ditolak' => (clone $base)->where('status', BorrowingStatus::Rejected->value)->count(),
+            'selesai_kembali' => (clone $base)->where('status', BorrowingStatus::Returned->value)->count(),
+            'masih_berjalan' => (clone $base)->whereIn('status', [BorrowingStatus::Borrowed->value, BorrowingStatus::Overdue->value])->count(),
             'terlambat_sekarang' => (clone $base)->where('status', BorrowingStatus::Overdue->value)->count(),
-            'peminjam_unik'      => (clone $base)->distinct('borrower_id')->count('borrower_id'),
+            'peminjam_unik' => (clone $base)->distinct('borrower_id')->count('borrower_id'),
         ];
     }
 
@@ -57,16 +58,42 @@ class ReportService
             ->whereNull('a.deleted_at')
             ->when($assetId, fn ($q) => $q->where('bi.asset_id', $assetId))
             ->whereNotNull('b.checked_out_at')
-            ->where(function ($q) use ($from, $to) {
-                $q->whereBetween('b.checked_out_at', [$from, $to])
-                    ->orWhereBetween('b.returned_at', [$from, $to])
-                    ->orWhere(fn ($w) => $w->where('b.checked_out_at', '<', $from)->whereNull('b.returned_at'));
+            // Interval peminjaman [checked_out_at, returned_at] beririsan dengan
+            // jendela [from, to] kalau dan hanya kalau:
+            //   mulai < akhir jendela  DAN  berakhir > awal jendela
+            //
+            // Dua kondisi SAJA, bukan tiga cabang OR. Versi lama
+            // (whereBetween checked_out_at / whereBetween returned_at / belum
+            // kembali) MELEWATI peminjaman yang keluar sebelum jendela lalu
+            // kembali SESUDAH jendela: checked_out_at tidak di dalam [from,to],
+            // returned_at juga tidak, dan returned_at bukan NULL — jadi hilang
+            // sama sekali, padahal 100% waktunya jatuh di dalam jendela.
+            //
+            // Rumus interval di atas otomatis mencakup ketiga kasus lama
+            // (dimulai di dalam, dikembalikan di dalam, masih keluar) PLUS
+            // kasus yang hilang itu, dan tidak perlu penanganan NULL terpisah:
+            // "belum kembali" berarti intervalnya terbuka ke masa depan —
+            // selama dimulai sebelum $to, ia pasti beririsan.
+            ->where('b.checked_out_at', '<=', $to)
+            ->where(function ($end) use ($from) {
+                $end->where('b.returned_at', '>=', $from)
+                    ->orWhereNull('b.returned_at');
             })
             ->groupBy('bi.asset_id', 'a.asset_code', 'at.name')
             ->selectRaw(
                 'a.asset_code, at.name AS type_name, COUNT(DISTINCT b.id) AS borrow_count, '
-                .'ROUND(SUM(GREATEST(0, TIMESTAMPDIFF(HOUR, GREATEST(b.checked_out_at, ?), LEAST(COALESCE(b.returned_at, NOW()), ?)))) / 24, 1) AS days_out',
-                [$from, $to]
+                // TIMESTAMPDIFF(HOUR, a, b) = (b - a) dalam jam. PostgreSQL
+                // tidak punya TIMESTAMPDIFF: EXTRACT(EPOCH FROM (b - a))/3600.
+                // `now()::timestamp`, bukan CURRENT_TIMESTAMP — kolomnya
+                // `timestamp` tanpa timezone, jadi NOW() (timestamptz) akan
+                // membuat COALESCE mengonversi kolom diam-diam ke zona sesi.
+                // Urutan placeholder mengikuti urutan kemunculannya di SQL:
+                // LEAST (batas atas) muncul lebih dulu, lalu GREATEST (batas bawah).
+                .'ROUND(SUM(GREATEST(0, EXTRACT(EPOCH FROM ('
+                .'LEAST(COALESCE(b.returned_at, now()::timestamp), ?)'
+                .' - GREATEST(b.checked_out_at, ?)'
+                .')) / 3600)) / 24, 1) AS days_out',
+                [$to, $from]
             )
             ->orderByDesc('days_out')
             ->get()
@@ -108,7 +135,7 @@ class ReportService
         $counts = Borrowing::query()
             ->whereNotNull('checked_out_at')
             ->where('checked_out_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(checked_out_at, '%Y-%m') AS month, COUNT(*) AS total")
+            ->selectRaw("TO_CHAR(checked_out_at, 'YYYY-MM') AS month, COUNT(*) AS total")
             ->groupBy('month')
             ->pluck('total', 'month');
 

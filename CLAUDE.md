@@ -1,7 +1,6 @@
-<laravel-boost-guidelines>
 # Laravel Application
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+This repository contains a Laravel 13 application running on PostgreSQL (Neon). Review the prerequisites before working on the user's request.
 
 ## Prerequisites
 
@@ -34,14 +33,10 @@ Linux:
 
 After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
 
-## Agent Setup
+## Project rules
 
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+- Laravel Boost is intentionally NOT installed in this repository and must NOT be installed. Do not run `composer require laravel/boost --dev` or `php artisan boost:install` — adding packages is against project policy.
+- Never run a second PHPUnit / `migrate:fresh` process concurrently against the shared Neon test branch; only one suite at a time.
+- Do not edit `app/`, `.env`, or `config/` files while a PHPUnit suite is running — lazy class loading mixes old and new code and poisons the run.
+- Report findings in Indonesian. Classify issues as CRITICAL/HIGH/MEDIUM/LOW/DEAD; mark unverifiable items as "NEEDS VERIFICATION".
+- Edits must be free of CJK characters (BEBAS CJK).

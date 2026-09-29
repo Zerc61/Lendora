@@ -15,7 +15,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'organization_id', 'school_class_id', 'name', 'email', 'password', 'status',
@@ -113,14 +113,33 @@ class User extends Authenticatable
         return $letters;
     }
 
-    /** URL foto profil, atau null bila belum diunggah. */
+    /**
+     * URL foto profil, atau null bila belum diunggah.
+     *
+     * Memakai disk default (Storage::url), bukan disk('public') hardcoded:
+     * upload ditulis lewat disk default juga (lihat ProfileController,
+     * UserController, TAHAP G) sehingga satu sumber kebenaran. Env
+     * menentukan disk-nya: FILESYSTEM_DISK=public di lokal (diserve lewat
+     * symlink public/storage) dan FILESYSTEM_DISK=s3 di produksi.
+     */
     public function photoUrl(): ?string
     {
         return $this->photo_path ? Storage::url($this->photo_path) : null;
     }
 
+    /**
+     * Foto profil pernah diunggah (ada path-nya), tanpa stat filesystem.
+     *
+     * Sebelumnya fungsi ini memanggil Storage::exists() — satu panggilan
+     * stat ke disk per render avatar. Di Vercel itu berarti akses filesystem
+     * (atau HTTP ke object storage) per avatar di SETIAP halaman, padahal
+     * nilainya jarang berubah. Sekadar mengecek path lebih murah dan hasilnya
+     * setara dalam praktik: file dihapus lewat satu-satunya pintu (handler
+     * hapus/ganti foto) yang sekaligus menghapus path-nya, jadi path basi
+     * hanya bisa muncul bila storage pihak luar diutak-atik.
+     */
     public function hasPhoto(): bool
     {
-        return filled($this->photo_path) && Storage::disk('public')->exists($this->photo_path);
+        return filled($this->photo_path);
     }
 }

@@ -96,7 +96,51 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+
+            // TLS ke database.
+            //
+            // Produksi (Neon) mewajibkan TLS — `sslmode=disable` ditolak dengan
+            // "ERROR: connection is insecure". Tapi `prefer` yang dulu dipakai
+            // hanya "mau" TLS: kalau server tidak menawarkan, PDO diam-diam
+            // jatuh ke plaintext sambil mengirim password. Di produksi itu tidak
+            // boleh, jadi default-nya `require`.
+            //
+            // Lokal tetap `prefer`, supaya developer dengan PostgreSQL lokal
+            // yang belum dikonfigurasi TLS tidak ikut breakage. Semua env lain
+            // — termasuk staging — dapat `require`.
+            //
+            // Untuk verifikasi sertifikat penuh, set dua-duanya lewat env:
+            //   DB_SSLMODE=verify-full
+            //   DB_SSLROOTCERT=system
+            // `system` memakai trust store OS. Sudah diuji: berhasil koneksi ke
+            // Neon. Tapi hanya jalan kalau image punya paket ca-certificates —
+            // FrankenPHP bookworm punya; kalau suatu saat diganti basis slim,
+            // verify-full akan GAGAL BOOT dengan "root certificate file does not
+            // exist". Karena itu tidak dijadikan default: kegagalan boot di
+            // produksi lebih mahal daripada risiko MITM yang kecil.
+            'sslmode' => env('DB_SSLMODE', env('APP_ENV') === 'local' ? 'prefer' : 'require'),
+            'sslrootcert' => env('DB_SSLROOTCERT'),
+
+            // Mengisi kolom application_name di pg_stat_activity, jadi saat
+            // ada koneksi menumpuk di Neon bisa dilihat itu aplikasi Lendora
+            // (bukan connection-test, migrasi, atau proses lain).
+            'application_name' => env('DB_APPLICATION_NAME', 'lendora'),
+
+            // Batas waktu koneksi, dalam detik.
+            //
+            // Tanpa ini, PDO::connect() ke host yang tidak menjawab (jaringan
+            // putus, security group menutup, container di-suspend) menggantung
+            // sampai default_socket_timeout PHP — 60 detik. Di Vercel itu berarti
+            // satu request yang salah bisa menahan instance selama_semanya.
+            // Diverifikasi: ke blackhole 192.0.2.1, PDO::ATTR_TIMEOUT=3 berakhir
+            // tepat di 3.0s dengan SQLSTATE 08006 "timeout expired".
+            //
+            // Catatan: ekstensi pgsql TIDAK punya directive ini di php.ini
+            // (sudah dicek — `pdo_pgsql.default_socket_timeout` tidak ada).
+            // Satu-satunya cara yang benar adalah option PDO di sini.
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5),
+            ]) : [],
         ],
 
         'sqlsrv' => [

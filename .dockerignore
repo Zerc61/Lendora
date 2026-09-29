@@ -13,7 +13,8 @@
 *.key
 auth.json
 
-# Lendora memakai MySQL. File ini sisa generator Laravel dan tidak terpakai.
+# Sisa generator Laravel. Lendora memakai PostgreSQL, jadi file ini tidak pernah
+# ada — tapi tetap dikecualikan supaya tidak pernah ikut ter-copy.
 database/database.sqlite
 
 # --- Dependency yang disuplai stage build, bukan dari context ---
@@ -59,4 +60,7 @@ database/database.sqlite
 # build output Vite tidak dipakai sama sekali oleh Lendora
 /public/build
 /public/hot
+# public/storage adalah symlink ke storage/app/public. Dockerfile.vercel
+# membuatnya sendiri saat build (ln -sfn), jadi tidak boleh ikut ter-copy
+# dari mesin lokal — symlink lokal menunjuk path absolut mesin ini.
 /public/storage

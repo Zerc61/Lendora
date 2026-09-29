@@ -4,6 +4,10 @@
     $user = auth()->user();
     $nav = \App\Support\Navigation::for($user);
     $statusCounts = \App\Support\Navigation::ticketStatusCounts($user);
+    // Hitung sekali, teruskan — user-menu (2x) & notification-btn memakai
+    // angka yang sama lewat partial, jadi tidak ada yang menghitung ulang.
+    $unread = \App\Support\Navigation::badges($user)['unread'];
+    $recentNotifications = $user->notifications()->latest()->limit(5)->get();
     $ticketsUrl = route('admin.tickets.index');
     $ticketsRoute = 'admin.tickets.*';
     $statuses = [
@@ -33,7 +37,7 @@
         @include('partials.rail-nav', ['groups' => $nav])
 
         <div class="rail__foot">
-            @include('partials.user-menu', ['id' => 'rail'])
+            @include('partials.user-menu', ['id' => 'rail', 'user' => $user, 'unread' => $unread])
         </div>
     </aside>
 
@@ -57,8 +61,8 @@
                 <a class="btn btn--primary" href="{{ route('admin.tickets.create') }}"><x-icon name="plus" /> <span class="hide-xs">Tiket</span></a>
             @endcan
 
-            @include('partials.notification-btn', ['id' => 'top'])
-            @include('partials.user-menu', ['id' => 'top', 'compact' => true])
+            @include('partials.notification-btn', ['id' => 'top', 'unread' => $unread, 'recent' => $recentNotifications])
+            @include('partials.user-menu', ['id' => 'top', 'compact' => true, 'user' => $user, 'unread' => $unread])
         </header>
 
         @if ($showStatusStrip)
