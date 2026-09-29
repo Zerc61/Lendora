@@ -580,3 +580,93 @@ Kalau URL sudah `https://` tapi `$request->secure()` masih `false`
 > Catatan: jangan shotgun dengan `URL::forceScheme()` tanpa syarat
 > `APP_URL` — itu membuat setiap halaman keluar `https` termasuk saat
 > pengembangan lokal.
+
+### 10.8 Insiden 2026-09-29 — `POST /login` HTTP 500 (SQLSTATE 25P02)
+
+#### Gejala
+
+`POST /login` selalu membalas **HTTP 500** di produksi, deterministik (3/3).
+Halaman `/login` (GET) normal, jadi bukan masalah aset atau routing.
+
+#### Rantai penyebab
+
+```
+QueryException  SQLSTATE[25P02]: In failed sql transaction: 7 ERROR:
+  current transaction is aborted, commands ignored until end of transaction block
+```
+
+`25P02` adalah error **sekunder**: bukan pernyataan yang benar-benar salah, tapi
+menyatakan transaksi sudah berstatus *aborted* sehingga perintah berikutnya
+diabaikan. Urutan query pada halaman debug produksi:
+
+```
+1. select * from "cache" where "key" in ('lendora-cache-<sha1>')            36.63 ms
+2. select * from "cache" where "key" in ('lendora-cache-<sha1>:timer')       5.16 ms
+3. select * from "cache" where "key" in ('lendora-cache-<sha1>')             3.84 ms
+4. select * from "cache" where "key" = '...' limit 1 for update              4.91 ms   <- SUKSES
+5. update "cache" set "value" = ? where "key" = ?                                    <- 25P02
+```
+
+Langkah 1-4 adalah `ThrottleRequests` (middleware `throttle:6,1` di
+`routes/web.php`) memanggil `RateLimiter::hit()`. Pada cache store `database`,
+`hit()` mendarat di `DatabaseStore::incrementOrDecrement()` yang membungkus
+seluruh operasi di `DB::transaction()`:
+
+```
+BEGIN
+SELECT * FROM cache WHERE key = ? LIMIT 1 FOR UPDATE
+UPDATE cache SET value = ? WHERE key = ?
+COMMIT
+```
+
+Artinya **login mati karena penghitung throttle-nya gagal menulis**, bukan karena
+kredensial salah. `POST /login` satu-satunya rute yang memakai `RateLimiter`, dan
+satu-satunya tempat di aplikasi ini yang memakai `Cache::increment()` - jadi
+login satu-satunya endpoint yang ikut tumbang, dan seluruh autentikasi mati
+hanya karena lapisan cache.
+
+Yang membuat `25P02` muncul pada langkah 5 padahal langkah 4 sukses adalah
+fakta bahwa `SELECT ... FOR UPDATE` dan `UPDATE` berikutnya **tidak mungkin**
+berkasalah di server yang sama dalam transaksi yang sama. Itu berarti ada
+desync protokol di sisi klien/pooler, bukan sekadar satu baris yang gagal.
+
+#### Perbaikan
+
+`App\Support\NonTransactionalRateLimiter` menggantikan rate limiter bawaan:
+
+- Counter ditulis sebagai dua pernyataan biasa (baca, lalu `put`/upsert)
+  **tanpa `DB::transaction()`** - jadi tidak ada transaksi yang bisa di-abort.
+- Format penyimpanan tetap integer ter-serialize, dan jendela tetap (*fixed
+  window*) tetap dihitung dari key `:timer` milik framework, sehingga
+  `attempts()`/`tooManyAttempts()` tidak berubah.
+- Binding di `AppServiceProvider::register()` dibungkus `booted()` **karena
+  framework juga mendaftarkan singleton `RateLimiter::class` di
+  `CacheServiceProvider`, yang terdaftar setelah `AppServiceProvider`**. Binding
+  di `register()` akan ditimpa tanpa error apa pun.
+
+Biaya: kehilangan atomicity (dua request bersamaan bisa saja membaca counter
+lama yang sama). Untuk rate limit login ini dapat diterima, dan proteksi brute
+force tetap aktif - tidak ada kontrol keamanan yang dinonaktifkan.
+
+Diukur di branch uji, 10 `hit()` berurutan: bawaan **658 ms**, baru **556 ms**
+per `hit()`. Lebih cepat, karena tidak ada round-trip `BEGIN`/`COMMIT`.
+
+#### Dua temuan yang belum tertutup
+
+1. **`APP_DEBUG` efektif `true` di produksi. (CRITICAL)**
+   Halaman debug yang bocor berukuran sekitar 1 MB dan memuat **request header**,
+   termasuk token `x-vercel-oidc-token`. Token itu bisa dipakai meniru
+   deployment ke API Vercel. Perbaikannya di dashboard Vercel
+   (`APP_DEBUG=false`), bukan di repo.
+
+2. **Pemicu infra belum teridentifikasi (NEEDS VERIFICATION).**
+   Kode, database, dan pooler masing-masing bisa dibuktikan sehat: login penuh
+   berhasil lokal terhadap DB produksi, dan 160+ transaksi
+   `BEGIN` / `SELECT FOR UPDATE` / `UPDATE` konkuren lewat pooler tidak
+   menghasilkan satu pun `25P02` - baik dengan native maupun emulated prepared
+   statement. Berarti pemicunya khas runtime container (FrankenPHP) dan belum
+   ketahuan. Semua `DB::transaction()` di `app/Actions/` memakai pola yang
+   sama, jadi **perlu diuji dari dalam aplikasi setelah deploy**: jalankan satu
+   aksi yang bertransaksi (misalnya membuat peminjaman) dan lihat apakah `25P02`
+   muncul juga di sana. Kalau iya, akar masalahnya di level koneksi/pooler,
+   bukan di rate limiter, dan perbaikannya harus di level itu juga.

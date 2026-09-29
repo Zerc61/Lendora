@@ -12,6 +12,8 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Observers\AuditableObserver;
 use App\Support\AppCounts;
+use App\Support\NonTransactionalRateLimiter;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +32,24 @@ class AppServiceProvider extends ServiceProvider
         // request di dalam satu test, jadi memo harus di-flush per request —
         // lihat RequestHandled di boot().
         $this->app->singleton(AppCounts::class);
+
+        // Ganti rate limiter bawaan framework dengan yang tidak memakai
+        // transaksi database. Alasan dan trade-off-nya ada di docblock
+        // NonTransactionalRateLimiter; intinya, `Cache::increment()` pada cache
+        // store `database` dibungkus `DB::transaction()` sehingga satu
+        // gangguan cache bisa menjatuhkan `POST /login` menjadi HTTP 500.
+        //
+        // Kenapa di dalam booted() dan bukan langsung di sini: framework juga
+        // mendaftarkan singleton untuk RateLimiter::class di
+        // Illuminate\Cache\CacheServiceProvider, dan provider itu terdaftar
+        // SESUDAH AppServiceProvider. Binding di dalam register() akan ditimpa
+        // tanpa terdeteksi -- gejalanya subtel: tidak ada error, kode tetap
+        // jalan, tapi rate limiter yang transaction-nya sudah aktif lagi.
+        // booted() baru dijalankan setelah semua provider selesai registrasi,
+        // jadi urutan provider tidak bisa menggagalkan override ini.
+        $this->app->booted(function (): void {
+            $this->app->singleton(RateLimiter::class, NonTransactionalRateLimiter::class);
+        });
     }
 
     public function boot(): void
